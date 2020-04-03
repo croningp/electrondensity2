@@ -1,0 +1,10 @@
+# Python
+.ipynb_checkpoints
+*.pyc
+*.pyo
+__pycache__/
+build
+data/
+
+# other
+.vscode
