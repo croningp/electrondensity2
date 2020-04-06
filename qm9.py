@@ -61,12 +61,34 @@ def prepare_xtb_input(file_path, coordinates):
             file.write('\t'.join(c)+'\n')
         file.write('$end\n')
         
-def run_xtb_job()
-        
-        
+def run_xtb(
+    xtb_exe_path: str,
+    xyz_file: str,
+    save_folder: str,
+    molden: bool = False
+):
+    """Run XTB geometry optimisation on given XYZ file, saving output to given
+    save folder.
+
+    Args:
+        xtb_exe_path (str): Path to XTB executable.
+        xyz_file (str): XYZ file to run geometry optimisation on.
+        save_folder (str): Folder to save XTB output files to.
+        molden (bool): If True will generate molden input file.
+    """
+    os.makedirs(save_folder, exist_ok=True)
+    cmd = [os.path.abspath(xtb_exe_path), os.path.abspath(xyz_file), '--opt']
+    if molden:
+        cmd.append('--molden')
+    sub.Popen(
+        cmd,
+        cwd=save_folder,
+        stdout=sub.PIPE,
+        stderr=sub.PIPE,
+    ).communicate()  
+
+
     
-
-
 if __name__ == '__main__':
     n, p, c, f, s = read_qm9_file('C:\\Users\\jmg\\Desktop\\programming\\electrondensity2\\data\\qm9\\dsgdb9nsd_000003.xyz')
     prepare_xtb_input('test.xtb', c)
