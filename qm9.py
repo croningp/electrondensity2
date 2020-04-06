@@ -4,7 +4,13 @@ Created on Fri Apr  3 15:02:00 2020
 
 @author: jmg
 """
+import os
+import subprocess as sub
+import pickle
+import numpy as np
 
+import tqdm
+from cube import parse_molden_file
 
 def read_qm9_file(path):
     """Parses a single file from qm9 database
@@ -45,6 +51,7 @@ def read_qm9_file(path):
         prop_dict[prop_name] = properties[idx]
     
     coordinates = data[2:2+num_atoms]
+    coordinates = [c.replace('*^', 'e') for c in coordinates]
     coordinates = [c.split('\t')[:-1] for c in coordinates]
     frequencies = data[2+num_atoms].split('\t')
     smiles = ''.join(data[3+num_atoms].split('\t'))
@@ -55,40 +62,112 @@ def read_qm9_file(path):
 def prepare_xtb_input(file_path, coordinates):
     
     coordinates = [c[1:]+[c[0]] for c in coordinates]
+    coordinates_xyz = [c[:-1] for c in coordinates]
+    coordinates_xyz = np.array([[float(f) for f in c] for c in coordinates_xyz])
+    
+    min_coords = np.min(coordinates_xyz, axis=0)
+    max_coords = np.max(coordinates_xyz, axis=0)
+    diff = min_coords + (max_coords-min_coords) / 2
+    diff = diff.reshape([1, -1])
+    print(coordinates_xyz)
+    print(diff)
+    print(coordinates_xyz-diff)
+    mod_coords = coordinates_xyz - diff
+    mod_coords = [ [str(f) for f in c] for c in mod_coords]
+    
+    new_coords = []
+    for idx, c in enumerate(mod_coords):
+        new_line = c
+        new_line.append(coordinates[idx][-1])
+        new_coords.append(new_line)
+
+    #print(new_coords)
+
     with open(file_path, 'w+') as file:
         file.write('$coords angs\n')
-        for c in coordinates:
+        for c in new_coords:
             file.write('\t'.join(c)+'\n')
         file.write('$end\n')
         
 def run_xtb(
-    xtb_exe_path: str,
+    xtb_file: str,
     xyz_file: str,
     save_folder: str,
-    molden: bool = False
+    molden: bool = False,
+    opt: bool = False
 ):
     """Run XTB geometry optimisation on given XYZ file, saving output to given
     save folder.
 
     Args:
-        xtb_exe_path (str): Path to XTB executable.
+        xtb_file (str): path to xtb executable
         xyz_file (str): XYZ file to run geometry optimisation on.
         save_folder (str): Folder to save XTB output files to.
-        molden (bool): If True will generate molden input file.
+        molden (bool): If Triue will generate molden input file.
+        opt (bool): If true will perform geomtry optmizatin.
+
     """
     os.makedirs(save_folder, exist_ok=True)
-    cmd = [os.path.abspath(xtb_exe_path), os.path.abspath(xyz_file), '--opt']
+    cmd = [os.path.abspath(xtb_file), os.path.abspath(xyz_file)]
     if molden:
         cmd.append('--molden')
+    if opt:
+        cmd.append('--opt')
     sub.Popen(
         cmd,
         cwd=save_folder,
         stdout=sub.PIPE,
         stderr=sub.PIPE,
-    ).communicate()  
+    ).communicate() 
 
 
+def parse_single_qm9_file(
+            input_path: str,
+            output_dir:str):
+    """Computes electron desnity for a single qm9 file and pickle it along properties
+        extracted from file and smiles string of the molecule.
+    
+        Args:
+            input_path (str): qm9 file to extract properties and molecular geometry
+            out_dir (str): directory where output files will be stored
+    
+    """
+    num_atoms, properties, coords, _, smiles =  read_qm9_file(input_path)
+    os.makedirs(output_dir, exist_ok=True)
+    xyz_file = os.path.join(output_dir,'input.xtb' )
+    prepare_xtb_input(xyz_file, coords)
+    output_dir = os.path.abspath(output_dir)
+    xtb_path = '/opt/miniconda3/envs/tensorflow/bin/xtb'
+    run_xtb(xtb_path, xyz_file, output_dir, molden=True)
+    molden_input = os.path.join(output_dir, 'molden.input')
+    rho = parse_molden_file(molden_input, step_size=0.5 )
+    output_dict = {}
+    output_dict['electron_density'] = rho
+    output_dict['properties'] = properties
+    output_dict['smiles'] = smiles
+    output_file = os.path.join(output_dir, 'output.pkl')
+    #with open(output_file, 'wb+') as ofile:
+     #   pickle.dump(output_dict, ofile)
+
+def parse_dataset(dataset_path, result_dir):
+    files = os.listdir(dataset_path)[:1000]
+    os.makedirs(result_dir, exist_ok=True)
+    for f in tqdm.tqdm(files):
+        file_path = os.path.join(dataset_path, f)
+        file_id = f.strip('.xyz').split('_')[1]
+        output_dir = os.path.join(result_dir, file_id)
+        parse_single_qm9_file(file_path, output_dir)
     
 if __name__ == '__main__':
-    n, p, c, f, s = read_qm9_file('C:\\Users\\jmg\\Desktop\\programming\\electrondensity2\\data\\qm9\\dsgdb9nsd_000003.xyz')
-    prepare_xtb_input('test.xtb', c)
+    #run_xtb('/opt/miniconda3/envs/tensorflow/bin/xtb',
+     #       '/home/jarek/electrondensity2/1/input.xyz',
+      #      '/home/jarek/electrondensity2/1', True)
+    #parse_single_qm9_file('data/qm9_dataset/dsgdb9nsd_127716.xyz', '1')
+    parse_dataset('data/qm9_dataset', 'data/qm9_processed')
+    #n, p, c, f, s = read_qm9_file('data/qm9_dataset/dsgdb9nsd_000003.xyz')
+    #prepare_xtb_input('test.xtb', c)
+    #run_xtb('xtb', 'test.xtb', '/home/jarek/', True)
+    #parse_molden_file('molden.input')
+
+
+
