@@ -61,6 +61,8 @@ def prepare_xtb_input(file_path, coordinates):
             file.write('\t'.join(c)+'\n')
         file.write('$end\n')
         
+def run_xtb_job()
+        
         
     
 
