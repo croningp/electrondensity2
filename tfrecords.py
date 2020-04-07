@@ -12,14 +12,6 @@ from collections import namedtuple
 import numpy as np
 import tensorflow as tf
 
-
-
-
-with open('token2num.pkl', 'rb') as file:
-    token2num = pickle.load(file)
-    
-with open('num2token.pkl', 'rb') as file:
-    num2token = pickle.load(file)
     
 def wrap_float(value):
     """Wraps a single float into tf FloatList"""
@@ -35,7 +27,7 @@ def wrap_int_list(value):
 
 def prepare_TFRecord(data):
     """Builds a tfrecod from data"""
-    density = wrap_float_list(data.density.reshape(-1))
+    density = wrap_float_list(data['electron_density'].reshape(-1))
     #homo_lumo_gap = wrap_float(data.HOMO_LUMO_gap)
     #smiles_string = data.smiles
     #smiles = encode_smiles(smiles_string, token2num)
@@ -54,11 +46,11 @@ def parse(serialized):
     """Parse the serialized object."""
     features =\
                 {
-                'density': tf.FixedLenFeature([64, 64, 64], tf.float32),
+                'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32),
                 #'homo_lumo_gap':tf.FixedLenFeature([1], tf.float32),
                 #'smiles':tf.FixedLenFeature([35], tf.int64)
                     }
-    parsed_example = tf.parse_single_example(serialized, features=features)
+    parsed_example = tf.io.parse_single_example(serialized, features=features)
     density = parsed_example['density']
     #smiles = parsed_example['smiles']
     density = tf.expand_dims(density, axis=-1)
@@ -66,7 +58,7 @@ def parse(serialized):
     return density,# homo_lumo_gap, smiles
 
 
-def train_preprocess(electron_density, homo_lumo_gap, smiles):
+def train_preprocess(electron_density):
     """Augments the dataset by flipping the electron density
     along the x, y, z axes.
 
@@ -82,7 +74,7 @@ def train_preprocess(electron_density, homo_lumo_gap, smiles):
     input_shape = electron_density.get_shape().as_list()
     # flip each along each axes
     for flip_index in range(3):
-        uniform_random =  tf.random_uniform([], 0, 1.0)
+        uniform_random =  tf.random.uniform([], 0, 1.0)
         mirror_cond = tf.less(uniform_random, 0.5)
 
         electron_density = tf.cond(mirror_cond,
@@ -98,7 +90,7 @@ def train_preprocess(electron_density, homo_lumo_gap, smiles):
     electron_density = tf.transpose(electron_density, perm=permutations)
     electron_density.set_shape(input_shape)
 
-    return electron_density, homo_lumo_gap, smiles
+    return electron_density
 
 def convert_to_tfrecords(paths, out_path):
     """ Serializes all the data into one file with TFRecords.
@@ -110,7 +102,7 @@ def convert_to_tfrecords(paths, out_path):
             None
     """
 
-    writer = tf.python_io.TFRecordWriter(out_path)
+    writer = tf.io.TFRecordWriter(out_path)
 
     for cube_path in tqdm.tqdm(paths):
         with open(cube_path, 'rb') as f:
@@ -126,24 +118,20 @@ def convert_to_tfrecords(paths, out_path):
 
 
 
-def train_validation_test_split(path, output_dir, basisset,
-                                train_size=0.9, valid_size=0.1):
+def train_validation_test_split(path, output_dir,
+                                train_size=0.9,
+                                valid_size=0.1):
     """
     Creates tfrecords for train, validation and test set.
 
     """
-    basissets = ['b3lyp_6-31g(d)', 'td-b3lyp_6-31g+(d)']
-    if basisset not in basissets:
-        raise ValueError('The available basis sets are {}'.format(basissets))
 
     dirs = os.listdir(path)
     compounds_path = []
     print('Reading files')
     for compound in tqdm.tqdm(dirs):
-        cube_file = '{:09d}.{}.cube'.format(int(compound), basisset)
+        cube_file = 'output.pkl'
         cube_path = os.path.join(path, compound, cube_file)
-        if not (os.path.exists(cube_path)) or os.path.getsize(cube_path) == 0:
-            continue
         compounds_path.append(cube_path)
 
     # random shuffle
@@ -192,11 +180,11 @@ def input_fn(filenames, train=True, num_epochs=1, batch_size=16, buffer_size=100
 
     dataset = dataset.repeat(num_epochs)
     dataset = dataset.batch(batch_size)
+    
+   # iterato = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
+    #batch_density = iterator.get_next()
 
-    iterator = dataset.make_one_shot_iterator()
-    batch_density, batch_homo_lumo, batch_smiles = iterator.get_next()
-
-    return batch_density, batch_homo_lumo, batch_smiles
+    return dataset
 
 
 def input_pipeline(train_files,
@@ -246,23 +234,27 @@ def input_pipeline(train_files,
 
 
 if __name__ == '__main__':
-    sys.path.append('C:\\Users\\group\\Desktop\\ElectronDensityML\\edml\\datagen\\')
+    #train_validation_test_split('data/qm9_processed', 'data/')
+    batch_density = input_fn('data/valid.tfrecords')
+    for i in iter(batch_density):
+        print(tf.reduce_mean(i))
+    #sys.path.append('C:\\Users\\group\\Desktop\\ElectronDensityML\\edml\\datagen\\')
     #train_validation_test_split(path='C:\\Users\\group\\Desktop\\test',
     #                            output_dir='C:\\Users\\group\\Desktop',
      #                           basisset='b3lyp_6-31g(d)')
     
-    b_denisties, b_homo_lumo_gaps, b_smiles = input_fn('C:\\Users\\group\\Desktop\\train.tfrecords')
+    #b_denisties, b_homo_lumo_gaps, b_smiles = input_fn('C:\\Users\\group\\Desktop\\train.tfrecords')
     
 #    #train_validation_test_split('/mnt/orkney1/pm6', '/home/jarek/pm6nn', 'b3lyp_6-31g(d)')
-    from orbkit import grid, output
-    from cube import set_grid
-    set_grid(64, 0.625)
-    grid.init_grid()
-    sess = tf.Session()
-    res, bs = sess.run([b_denisties, b_smiles])
-    index = 1
-    print(decode_smiles(bs[index], num2token))
-    output.view_with_mayavi(grid.x, grid.y, grid.z, res[index, :, :, :, 0])
+    #from orbkit import grid, output
+    #from cube import set_grid
+    #set_grid(64, 0.625)
+    #grid.init_grid()
+    #sess = tf.Session()
+    #res, bs = sess.run([b_denisties, b_smiles])
+    #index = 1
+    #print(decode_smiles(bs[index], num2token))
+    #output.view_with_mayavi(grid.x, grid.y, grid.z, res[index, :, :, :, 0])
     
     
     
