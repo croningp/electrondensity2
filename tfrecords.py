@@ -5,6 +5,7 @@ Created on Tue May 21 11:25:04 2019
 @author: group
 """
 import os
+import time
 import sys
 import pickle
 import tqdm
@@ -105,16 +106,65 @@ def convert_to_tfrecords(paths, out_path):
     writer = tf.io.TFRecordWriter(out_path)
 
     for cube_path in tqdm.tqdm(paths):
+        time_1 = time.time()
         with open(cube_path, 'rb') as f:
             data = pickle.load(f)
         try:
+            time_2 = time.time()
             example = prepare_TFRecord(data)
             serialized = example.SerializeToString()
+            time_3 = time.time()
             writer.write(serialized)
+            end_time = time.time()
+            
         except ValueError:
             pass
-            
+        print('Reading time from disc', time_2- time_1)
+        print('Serialization time', time_3-time_2)
+        print('Writing time', end_time-time_3)
+        print('Overall time', end_time - time_1)
     writer.close()
+
+def worker(input_queue, serialized_queue):
+    while True:
+            data = input_queue.get()
+            example = prepare_TFRecord(data)
+            serialized = example.SerializeToString()
+            serialized_queue.put(serialized)
+            
+def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
+    """ Serializes all the data into one file with TFRecords.
+
+        Args:
+            path: string the main folder with cube files
+            outpath: path where to save the tfrecods
+            num_processes: int how many processes use for serialization
+        Returns:
+            None
+    """
+    import multiprocessing as mp
+    input_queue = mp.Queue(maxsize=1000)
+    serialized_queue = mp.Queue(maxsize=1000)
+    processes = [mp.Process(target=worker, args=(input_queue, serialized_queue)) for i in range(num_processes)]
+    [p.start() for p in processes]
+    writer = tf.io.TFRecordWriter(out_path)
+
+    for cube_path in tqdm.tqdm(paths):
+        
+        with open(cube_path, 'rb') as f:
+            data = pickle.load(f)
+        
+        input_queue.put(data)
+            
+        while not serialized_queue.empty():
+            serialized = serialized_queue.get()
+            writer.write(serialized)
+
+    writer.close()
+
+
+
+
 
 
 
@@ -140,6 +190,7 @@ def train_validation_test_split(path, output_dir,
     idxs = np.arange(len_data)
     np.random.shuffle(idxs)
     compounds_path = compounds_path[idxs]
+    compounds_path = compounds_path
 
     train_idx = int(len_data * train_size)
     valid_idx = int(len_data * (train_size+valid_size))
@@ -151,15 +202,15 @@ def train_validation_test_split(path, output_dir,
     # generate tfrecords
     print('Preparing train set {} cubes'.format(len(train_set)))
     train_path = os.path.join(output_dir, 'train.tfrecords')
-    convert_to_tfrecords(train_set, train_path)
+    parellel_convert_to_tfrecords(train_set, train_path)
     print('Preparing valid set {}'.format(len(valid_set)))
     valid_path = os.path.join(output_dir, 'valid.tfrecords')
-    convert_to_tfrecords(valid_set, valid_path)
+    parellel_convert_to_tfrecords(valid_set, valid_path)
     print('Preparing test set {}'.format(len(test_set)))
     test_path = os.path.join(output_dir, 'test.tfrecords')
-    convert_to_tfrecords(test_set, test_path)
+    parellel_convert_to_tfrecords(test_set, test_path)
 
-def input_fn(filenames, train=True, num_epochs=1, batch_size=16, buffer_size=100):
+def input_fn(filenames, train=True, num_epochs=1, batch_size=16, buffer_size=1000):
     """ Create tensorflow dataset which has functionality for reading and
         shuffling the data from tfrecods files.
         Args:
@@ -171,15 +222,17 @@ def input_fn(filenames, train=True, num_epochs=1, batch_size=16, buffer_size=100
             batch_density, batch_homo_lumo: batch tensors sampled from tfrecords.
     """
 
-    dataset = tf.data.TFRecordDataset(filenames=filenames)
-    dataset = dataset.map(map_func=parse)
+    dataset = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=10).prefetch(tf.data.experimental.AUTOTUNE)
+    dataset = dataset.map(map_func=parse, num_parallel_calls=12)
 
     if train:
         dataset = dataset.shuffle(buffer_size=buffer_size)
-        dataset = dataset.map(map_func=train_preprocess)
+        dataset = dataset.map(map_func=train_preprocess, num_parallel_calls=12)
 
     dataset = dataset.repeat(num_epochs)
     dataset = dataset.batch(batch_size)
+    
+    #dataset = dataset.cache()
     
    # iterato = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
     #batch_density = iterator.get_next()
@@ -234,10 +287,10 @@ def input_pipeline(train_files,
 
 
 if __name__ == '__main__':
-    #train_validation_test_split('data/qm9_processed', 'data/')
-    batch_density = input_fn('data/valid.tfrecords')
-    for i in iter(batch_density):
-        print(tf.reduce_mean(i))
+    train_validation_test_split('D:\qm9', 'C:\\Users\\jmg\\Desktop\\programming\data', train_size=1.0)
+    #batch_density = input_fn('data/valid.tfrecords')
+    #for i in iter(batch_density):
+     #   print(tf.reduce_mean(i))
     #sys.path.append('C:\\Users\\group\\Desktop\\ElectronDensityML\\edml\\datagen\\')
     #train_validation_test_split(path='C:\\Users\\group\\Desktop\\test',
     #                            output_dir='C:\\Users\\group\\Desktop',
