@@ -54,7 +54,7 @@ def read_qm9_file(path):
     coordinates = [c.replace('*^', 'e') for c in coordinates]
     coordinates = [c.split('\t')[:-1] for c in coordinates]
     frequencies = data[2+num_atoms].split('\t')
-    smiles = ''.join(data[3+num_atoms].split('\t'))
+    smiles = ''.join(data[3+num_atoms].split('\t')[0])
     inchi = data[4+num_atoms]
      
     return num_atoms, prop_dict, coordinates, frequencies, smiles
@@ -159,15 +159,28 @@ def parse_dataset(dataset_path, result_dir):
         parse_single_qm9_file(file_path, output_dir)
     
 if __name__ == '__main__':
-    #run_xtb('/opt/miniconda3/envs/tensorflow/bin/xtb',
-     #       '/home/jarek/electrondensity2/1/input.xyz',
-      #      '/home/jarek/electrondensity2/1', True)
-    #parse_single_qm9_file('data/qm9_dataset/dsgdb9nsd_127716.xyz', '1')
-    parse_dataset('data/qm9_dataset', 'data/qm9_processed')
-    #n, p, c, f, s = read_qm9_file('data/qm9_dataset/dsgdb9nsd_000003.xyz')
-    #prepare_xtb_input('test.xtb', c)
-    #run_xtb('xtb', 'test.xtb', '/home/jarek/', True)
-    #parse_molden_file('molden.input')
-
+    source_path = 'C:\\Users\\jmg\\Desktop\\programming\\electrondensity2_testing\\data\\qm9'
+    out_dir = 'D:\\qm9'
+    folders = os.listdir(out_dir)
+    for f in tqdm.tqdm(folders):
+        f_path = os.path.join(out_dir, f, 'output.pkl')
+        print(f_path)
+        with open(f_path, 'rb') as dfile:
+            data = pickle.load(dfile)
+        
+        index = data['properties']['tag_index'].split(' ')[1]
+        source_name = 'dsgdb9nsd_{:06d}.xyz'.format(int(index))
+        file_path = os.path.join(source_path, source_name)
+        
+        original_data = read_qm9_file(file_path)
+        assert original_data[1]['tag_index'] == data['properties']['tag_index']
+        
+        data['smiles'] = original_data[4]
+        with open(f_path, 'wb') as dfile:
+            pickle.dump(data, dfile)
+            
+            
+        
+        
 
 

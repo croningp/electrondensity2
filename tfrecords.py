@@ -8,9 +8,11 @@ import os
 import time
 import sys
 import pickle
-import tqdm
-from collections import namedtuple
 import numpy as np
+import tqdm
+from functools import partial
+from collections import namedtuple
+from rdkit import Chem
 import tensorflow as tf
 
     
@@ -26,24 +28,43 @@ def wrap_int_list(value):
     """Wraps a int list into IntList"""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
+def wrap_string(value):
+    """Wraps a string into bytes list"""
+    value = bytes(value, 'utf-8')
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
 def prepare_TFRecord(data):
     """Builds a tfrecod from data"""
     density = wrap_float_list(data['electron_density'].reshape(-1))
-    #homo_lumo_gap = wrap_float(data.HOMO_LUMO_gap)
-    #smiles_string = data.smiles
-    #smiles = encode_smiles(smiles_string, token2num)
-    #smiles = wrap_int_list(smiles)
-    
     record_dict = {'density': density,}
-                   #'homo_lumo_gap':homo_lumo_gap,
-                   #'smiles':smiles}
     
+    for key in data['properties']:
+        key_data = data['properties'][key]
+        
+        try:
+            key_data = float(key_data)
+            key_data = wrap_float(key_data)
+            record_dict[key] = key_data
+        except:
+            key_data = wrap_string(key_data)
+            record_dict[key] = key_data
+    
+    smiles = data['smiles']
+    record_dict['smiles'] = wrap_string(smiles)
+    mol = Chem.MolFromSmiles(smiles)
+    
+    num_atoms = mol.GetNumAtoms()
+    record_dict['num_atoms'] = wrap_int_list([num_atoms])
+    print(smiles)
+    print(num_atoms)
+    print()
     record = tf.train.Features(feature=record_dict)
     tfrecord = tf.train.Example(features=record)
     return tfrecord
 
 
-def parse(serialized):
+def parse_fn(serialized, properties=[]):
     """Parse the serialized object."""
     features =\
                 {
@@ -51,15 +72,24 @@ def parse(serialized):
                 #'homo_lumo_gap':tf.FixedLenFeature([1], tf.float32),
                 #'smiles':tf.FixedLenFeature([35], tf.int64)
                     }
+    for prop in properties:
+        if prop == 'num_atoms':
+            features[prop] = tf.io.FixedLenFeature([1], tf.int64)
+        elif prop == 'smiles':
+            features[prop] = tf.io.VarLenFeature(tf.string)
+        else:
+            features[prop] = tf.io.FixedLenFeature([1], tf.float32)
+    
+            
     parsed_example = tf.io.parse_single_example(serialized, features=features)
     density = parsed_example['density']
-    #smiles = parsed_example['smiles']
     density = tf.expand_dims(density, axis=-1)
     #homo_lumo_gap = parsed_example['homo_lumo_gap'][0]
-    return density,# homo_lumo_gap, smiles
+    properties = [parsed_example[p] for p in properties]
+    return (density, *properties)
 
 
-def train_preprocess(electron_density):
+def train_preprocess(electron_density, *args):
     """Augments the dataset by flipping the electron density
     along the x, y, z axes.
 
@@ -91,7 +121,7 @@ def train_preprocess(electron_density):
     electron_density = tf.transpose(electron_density, perm=permutations)
     electron_density.set_shape(input_shape)
 
-    return electron_density
+    return (electron_density, *args)
 
 def convert_to_tfrecords(paths, out_path):
     """ Serializes all the data into one file with TFRecords.
@@ -142,6 +172,7 @@ def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
         Returns:
             None
     """
+    #print('-----------------',len(paths))
     import multiprocessing as mp
     input_queue = mp.Queue(maxsize=1000)
     serialized_queue = mp.Queue(maxsize=1000)
@@ -152,6 +183,7 @@ def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
     for cube_path in tqdm.tqdm(paths):
         
         with open(cube_path, 'rb') as f:
+            print(cube_path)
             data = pickle.load(f)
         
         input_queue.put(data)
@@ -161,6 +193,7 @@ def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
             writer.write(serialized)
 
     writer.close()
+    [p.terminate() for p in processes]
 
 
 
@@ -176,7 +209,7 @@ def train_validation_test_split(path, output_dir,
 
     """
 
-    dirs = os.listdir(path)
+    dirs = os.listdir(path)[:100]
     compounds_path = []
     print('Reading files')
     for compound in tqdm.tqdm(dirs):
@@ -210,7 +243,7 @@ def train_validation_test_split(path, output_dir,
     test_path = os.path.join(output_dir, 'test.tfrecords')
     parellel_convert_to_tfrecords(test_set, test_path)
 
-def input_fn(filenames, train=True, num_epochs=1, batch_size=16, buffer_size=1000):
+def input_fn(filenames, properties=[], train=True, num_epochs=1, batch_size=16, buffer_size=1000):
     """ Create tensorflow dataset which has functionality for reading and
         shuffling the data from tfrecods files.
         Args:
@@ -221,7 +254,8 @@ def input_fn(filenames, train=True, num_epochs=1, batch_size=16, buffer_size=100
         Returns:
             batch_density, batch_homo_lumo: batch tensors sampled from tfrecords.
     """
-
+    
+    parse = partial(parse_fn, properties=properties)
     dataset = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=10).prefetch(tf.data.experimental.AUTOTUNE)
     dataset = dataset.map(map_func=parse, num_parallel_calls=12)
 
@@ -287,8 +321,12 @@ def input_pipeline(train_files,
 
 
 if __name__ == '__main__':
-    train_validation_test_split('D:\qm9', 'C:\\Users\\jmg\\Desktop\\programming\data', train_size=1.0)
-    #batch_density = input_fn('data/valid.tfrecords')
+    #with open('D:\\qm9\\080684\\output.pkl', 'rb') as df:
+        #data = pickle.load(df)
+    #train_validation_test_split('D:\qm9', 'C:\\Users\\jmg\\Desktop\\programming\data', train_size=1.0)
+    a = input_fn('C:\\Users\\jmg\\Desktop\\programming\data\\train.tfrecords', properties=['num_atoms', 'smiles'])
+    i = iter(a)
+    d, n, s = i.__next__() 
     #for i in iter(batch_density):
      #   print(tf.reduce_mean(i))
     #sys.path.append('C:\\Users\\group\\Desktop\\ElectronDensityML\\edml\\datagen\\')
@@ -299,15 +337,15 @@ if __name__ == '__main__':
     #b_denisties, b_homo_lumo_gaps, b_smiles = input_fn('C:\\Users\\group\\Desktop\\train.tfrecords')
     
 #    #train_validation_test_split('/mnt/orkney1/pm6', '/home/jarek/pm6nn', 'b3lyp_6-31g(d)')
-    #from orbkit import grid, output
-    #from cube import set_grid
-    #set_grid(64, 0.625)
-    #grid.init_grid()
+    from orbkit import grid, output
+    from cube import set_grid
+    set_grid(64, 0.625)
+    grid.init_grid()
     #sess = tf.Session()
     #res, bs = sess.run([b_denisties, b_smiles])
     #index = 1
     #print(decode_smiles(bs[index], num2token))
-    #output.view_with_mayavi(grid.x, grid.y, grid.z, res[index, :, :, :, 0])
+    output.view_with_mayavi(grid.x, grid.y, grid.z, d[0, :, :, :, 0])
     
     
     
