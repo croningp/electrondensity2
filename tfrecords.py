@@ -209,7 +209,7 @@ def train_validation_test_split(path, output_dir,
 
     """
 
-    dirs = os.listdir(path)[:100]
+    dirs = os.listdir(path)
     compounds_path = []
     print('Reading files')
     for compound in tqdm.tqdm(dirs):
@@ -321,12 +321,13 @@ def input_pipeline(train_files,
 
 
 if __name__ == '__main__':
+    pass
     #with open('D:\\qm9\\080684\\output.pkl', 'rb') as df:
         #data = pickle.load(df)
     #train_validation_test_split('D:\qm9', 'C:\\Users\\jmg\\Desktop\\programming\data', train_size=1.0)
-    a = input_fn('C:\\Users\\jmg\\Desktop\\programming\data\\train.tfrecords', properties=['num_atoms', 'smiles'])
-    i = iter(a)
-    d, n, s = i.__next__() 
+    #a = input_fn('C:\\Users\\jmg\\Desktop\\programming\data\\train.tfrecords', properties=['num_atoms', 'smiles'])
+    #i = iter(a)
+    #d, n, s = i.__next__() 
     #for i in iter(batch_density):
      #   print(tf.reduce_mean(i))
     #sys.path.append('C:\\Users\\group\\Desktop\\ElectronDensityML\\edml\\datagen\\')
@@ -337,15 +338,15 @@ if __name__ == '__main__':
     #b_denisties, b_homo_lumo_gaps, b_smiles = input_fn('C:\\Users\\group\\Desktop\\train.tfrecords')
     
 #    #train_validation_test_split('/mnt/orkney1/pm6', '/home/jarek/pm6nn', 'b3lyp_6-31g(d)')
-    from orbkit import grid, output
-    from cube import set_grid
-    set_grid(64, 0.625)
-    grid.init_grid()
+    #from orbkit import grid, output
+    #from cube import set_grid
+    #set_grid(64, 0.625)
+    #grid.init_grid()
     #sess = tf.Session()
     #res, bs = sess.run([b_denisties, b_smiles])
     #index = 1
     #print(decode_smiles(bs[index], num2token))
-    output.view_with_mayavi(grid.x, grid.y, grid.z, d[0, :, :, :, 0])
+    #output.view_with_mayavi(grid.x, grid.y, grid.z, d[0, :, :, :, 0])
     
     
     

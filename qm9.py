@@ -8,7 +8,7 @@ import os
 import subprocess as sub
 import pickle
 import numpy as np
-
+#os.environ["CUDA_VISIBLE_DEVICES"]="1"
 import tqdm
 from cube import parse_molden_file
 

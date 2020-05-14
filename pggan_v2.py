@@ -370,8 +370,8 @@ discriminator = Discriminator()
 
 g_checkpoint = tf.train.Checkpoint(optimizer=g_optimizer, model=generator)
 d_checkpoint =  tf.train.Checkpoint(optimizer=d_optimizer, model=discriminator)
-#g_checkpoint.restore('gen.ckpt-3')
-#d_checkpoint.restore('dis.ckpt-3')
+g_checkpoint.restore('models\\gen.ckpt-6')
+d_checkpoint.restore('models\\dis.ckpt-6')
 batch_density = iter(input_fn('data\\train.tfrecords',
                     train=True, batch_size=12, num_epochs=35))
 
@@ -434,7 +434,7 @@ def transorm_back(density):
     return density
     
 
-counter = 0
+counter = 12001
 g_losses = []
 d_losses = []
 kl_losses = []
@@ -445,7 +445,7 @@ for j in tqdm.tqdm(range(100000)):
     counter+=1
     
     for i in range(5):
-        density = next(batch_density)
+        density = next(batch_density)[0]
         density = tf.tanh(density)
         density = transorm_ed(density)
         dloss = discrimator_train_step(density)
@@ -461,18 +461,26 @@ for j in tqdm.tqdm(range(100000)):
         print('Run avgs D loss {}, G loss {}\n'.format(d_running_avg, g_running_avg,))
         g_losses = []
         d_losses = []
-        generated_cubes = generator(2)
-        with open('generated.pkl', 'wb') as pfile:
+        generated_cubes = generator(8)
+        with open('data\\generated.pkl', 'wb') as pfile:
             generated_cubes = transorm_back(generated_cubes)
             pickle.dump(generated_cubes.numpy(), pfile)
-    if counter % 1000==0:
-        gen_path = g_checkpoint.save('gen.ckpt')
-        dis_path = d_checkpoint.save('dis.ckpt')
+    if counter % 2000==0:
+        gen_path = g_checkpoint.save('models\\gen.ckpt')
+        dis_path = d_checkpoint.save('models\\dis.ckpt')
         print('Generator saved to', gen_path)
         print('Discriminator saved to', dis_path)
         
-    
-    
+        generated_cubes = []
+        
+        for i in tqdm.tqdm(range(125)):
+            cubes = generator(8)
+            cubes = transorm_back(cubes)
+            generated_cubes.append(transorm_back(cubes).numpy())
+        generated_cubes = np.array(generated_cubes)
+        generated_cubes = generated_cubes.reshape([-1, 64,64,64,1])
+        np.save('{}'.format(counter), generated_cubes)
+            
     #gloss, _ = pretrain_step(density)
     #glosses.append(gloss)
     #if counter %100 == 0:
