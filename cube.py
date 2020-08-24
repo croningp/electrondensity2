@@ -79,7 +79,7 @@ def parse_log_file(path, property_fn,  n_points=64, step_size=0.625):
         #calculate property
         prop = property_fn(path)
         # calculate electron density
-        rho = core.rho_compute(qc, slice_length=1e4, numproc=1)
+        rho = core.rho_compute(qc, slice_length=1e4, numproc=27)
 
 #        data = Data(density=rho, HOMO_LUMO_gap=prop, n_points=step_size,
 #                         step_size=step_size)
@@ -104,7 +104,7 @@ def parse_molden_file(path, n_points=64, step_size=0.625):
     if check_grid(qc, n_points=n_points, step_size=step_size) == True:
 
         # calculate electron density
-        return core.rho_compute(qc, slice_length=1e4, numproc=1)
+        return core.rho_compute(qc, slice_length=1e4, numproc=27)
 
     else:
         raise ValueError('Molecule doesn\'t fit into the target box')

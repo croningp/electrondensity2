@@ -8,7 +8,7 @@ import os
 import pickle
 import numpy as np
 import tqdm
-#os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="2,4,5"
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, AvgPool2D, LSTMCell, Dense
 from tensorflow.keras.layers import Conv2DTranspose, MaxPool2D, UpSampling2D, Layer, RNN, Bidirectional
@@ -377,8 +377,9 @@ with mirrored_strategy.scope():
     
     
     
-    batch_density = input_fn('data/train.tfrecords',
-                          train=True, batch_size=16, num_epochs=35)
+    batch_density = input_fn(['/media/extssd/jarek/train.tfrecords',
+                                '/media/extssd/jarek/valid.tfrecords'],
+                          train=True, batch_size=48, num_epochs=100)
 
     dist_densities = mirrored_strategy.experimental_distribute_dataset(batch_density)
     dist_densities = iter(dist_densities)
@@ -403,7 +404,7 @@ def transorm_back(density):
 
 
 @tf.function
-def discrimator_train_step(density, batch_size=8, p_lambda=10):
+def discrimator_train_step(density, batch_size=16, p_lambda=10):
     
     def step_fn(density):
         density = tf.tanh(density)
@@ -435,7 +436,7 @@ def discrimator_train_step(density, batch_size=8, p_lambda=10):
     return loss
 
 @tf.function
-def generator_train_step(batch_size=8):
+def generator_train_step(batch_size=16):
     
     def step_fn(batch_size=batch_size):
         with tf.GradientTape() as tape:
@@ -469,7 +470,7 @@ with mirrored_strategy.scope() as s:
         counter+=1
         
         for i in range(5):
-            density = next(dist_densities)
+            density = next(dist_densities)[0]
     
             dloss = discrimator_train_step(density)
             d_losses.append(dloss)
@@ -489,8 +490,8 @@ with mirrored_strategy.scope() as s:
                 generated_cubes = transorm_back(generated_cubes)
                 pickle.dump(generated_cubes.numpy(), pfile)
         if counter % 1000==0:
-            gen_path = g_checkpoint.save('gen.ckpt')
-            dis_path = d_checkpoint.save('dis.ckpt')
+            gen_path = g_checkpoint.save('/media/extssd/jarek/models/gen.ckpt')
+            dis_path = d_checkpoint.save('/media/extssd/jarek/models/dis.ckpt')
             print('Generator saved to', gen_path)
             print('Discriminator saved to', dis_path)
         

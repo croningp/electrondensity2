@@ -137,7 +137,7 @@ def parse_single_qm9_file(
     xyz_file = os.path.join(output_dir,'input.xtb' )
     prepare_xtb_input(xyz_file, coords)
     output_dir = os.path.abspath(output_dir)
-    xtb_path = '/opt/miniconda3/envs/tensorflow/bin/xtb'
+    xtb_path = '/home/jarek/miniconda3/bin/xtb'
     run_xtb(xtb_path, xyz_file, output_dir, molden=True)
     molden_input = os.path.join(output_dir, 'molden.input')
     rho = parse_molden_file(molden_input, step_size=0.5 )
@@ -146,11 +146,11 @@ def parse_single_qm9_file(
     output_dict['properties'] = properties
     output_dict['smiles'] = smiles
     output_file = os.path.join(output_dir, 'output.pkl')
-    #with open(output_file, 'wb+') as ofile:
-     #   pickle.dump(output_dict, ofile)
+    with open(output_file, 'wb+') as ofile:
+        pickle.dump(output_dict, ofile)
 
 def parse_dataset(dataset_path, result_dir):
-    files = os.listdir(dataset_path)[:1000]
+    files = os.listdir(dataset_path)
     os.makedirs(result_dir, exist_ok=True)
     for f in tqdm.tqdm(files):
         file_path = os.path.join(dataset_path, f)
@@ -159,25 +159,26 @@ def parse_dataset(dataset_path, result_dir):
         parse_single_qm9_file(file_path, output_dir)
     
 if __name__ == '__main__':
-    source_path = 'C:\\Users\\jmg\\Desktop\\programming\\electrondensity2_testing\\data\\qm9'
-    out_dir = 'D:\\qm9'
-    folders = os.listdir(out_dir)
-    for f in tqdm.tqdm(folders):
-        f_path = os.path.join(out_dir, f, 'output.pkl')
-        print(f_path)
-        with open(f_path, 'rb') as dfile:
-            data = pickle.load(dfile)
+    parse_dataset('data/', '/media/extssd/jarek/qm9_cubes') 
+   # source_path = 'C:\\Users\\jmg\\Desktop\\programming\\electrondensity2_testing\\data\\qm9'
+   # out_dir = 'D:\\qm9'
+   # folders = os.listdir(out_dir)
+   # for f in tqdm.tqdm(folders):
+   #     f_path = os.path.join(out_dir, f, 'output.pkl')
+   #     print(f_path)
+   #     with open(f_path, 'rb') as dfile:
+    #     data = pickle.load(dfile)
+    #    
+    #    index = data['properties']['tag_index'].split(' ')[1]
+    #    source_name = 'dsgdb9nsd_{:06d}.xyz'.format(int(index))
+    #    file_path = os.path.join(source_path, source_name)
         
-        index = data['properties']['tag_index'].split(' ')[1]
-        source_name = 'dsgdb9nsd_{:06d}.xyz'.format(int(index))
-        file_path = os.path.join(source_path, source_name)
+    #    original_data = read_qm9_file(file_path)
+    #    assert original_data[1]['tag_index'] == data['properties']['tag_index']
         
-        original_data = read_qm9_file(file_path)
-        assert original_data[1]['tag_index'] == data['properties']['tag_index']
-        
-        data['smiles'] = original_data[4]
-        with open(f_path, 'wb') as dfile:
-            pickle.dump(data, dfile)
+    #    data['smiles'] = original_data[4]
+     #   with open(f_path, 'wb') as dfile:
+      #      pickle.dump(data, dfile)
             
             
         

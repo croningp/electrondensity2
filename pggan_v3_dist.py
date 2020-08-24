@@ -16,7 +16,7 @@ from tensorflow.keras.layers import Conv2DTranspose, MaxPool2D, UpSampling2D, La
 from tensorflow.keras.layers import LSTM, Conv3D, MaxPool3D, AvgPool3D, UpSampling3D, Conv3DTranspose, Activation, BatchNormalization
 from tensorflow.keras import Model
 
-
+os.chdir('/home/jarek/electrondensity2')
 from tfrecords import input_fn
 
 
@@ -129,7 +129,7 @@ class ConvSelfAttn(Model):
         gx_flat = self.flatten(gx)
         hx_flat = self.flatten(hx)
         
-        raw_attn_weights = tf.matmul(fx_flat, gx_flat, transpose_b=True)
+        raw_attn_weights = tf.tanh(tf.matmul(fx_flat, gx_flat, transpose_b=True))
         raw_attn_weights = tf.transpose(raw_attn_weights, perm=[0,2,1])
         attn_weights = tf.nn.softmax(raw_attn_weights, axis=-1)
         
@@ -175,7 +175,7 @@ class CNNEncoder(Model):
         self.attn = ConvSelfAttn(attn_dim=32, output_dim=128)
         self.flatten = Flatten()
         
-    def call(self, inputs, training):
+    def call(self, inputs):
         
         
         x = self.conv_1(inputs)
@@ -344,13 +344,13 @@ with mirrored_strategy.scope():
     
     
     
-    batch_density = input_fn(['/media/extssd/jarek/train.tfrecords',
-                                '/media/extssd/jarek/valid.tfrecords'],
+    batch_density = input_fn(['/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/train.tfrecords',
+                                '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/valid.tfrecords'],
                           train=True, batch_size=48, num_epochs=100)
     
 
     time_stamp = str(int(time.time()))
-    path = os.path.join('/media/extssd/jarek/logs/', time_stamp, 'train')
+    path = os.path.join('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/logs/', time_stamp, 'train')
     summary_writer = tf.summary.create_file_writer(path)
 
     dist_densities = mirrored_strategy.experimental_distribute_dataset(batch_density)
@@ -464,7 +464,7 @@ with mirrored_strategy.scope() as s:
                 generated_cubes = transorm_back(generated_cubes)
                 pickle.dump(generated_cubes.numpy(), pfile)
         if counter % 1000==0:
-            gen_path = g_checkpoint.save('/media/extssd/jarek/models/gen.ckpt')
-            dis_path = d_checkpoint.save('/media/extssd/jarek/models/dis.ckpt')
+            gen_path = g_checkpoint.save('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/gen.ckpt')
+            dis_path = d_checkpoint.save('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/dis.ckpt')
             print('Generator saved to', gen_path)
             print('Discriminator saved to', dis_path)

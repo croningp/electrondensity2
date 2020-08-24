@@ -12,7 +12,10 @@ import numpy as np
 import tqdm
 from functools import partial
 from collections import namedtuple
-from rdkit import Chem
+try:
+    from rdkit import Chem
+except:
+    print('Rdkit not found')
 import tensorflow as tf
 
     
@@ -56,9 +59,9 @@ def prepare_TFRecord(data):
     
     num_atoms = mol.GetNumAtoms()
     record_dict['num_atoms'] = wrap_int_list([num_atoms])
-    print(smiles)
-    print(num_atoms)
-    print()
+    #print(smiles)
+    #print(num_atoms)
+    #print()
     record = tf.train.Features(feature=record_dict)
     tfrecord = tf.train.Example(features=record)
     return tfrecord
@@ -172,7 +175,7 @@ def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
         Returns:
             None
     """
-    #print('-----------------',len(paths))
+    print('-----------------',len(paths))
     import multiprocessing as mp
     input_queue = mp.Queue(maxsize=1000)
     serialized_queue = mp.Queue(maxsize=1000)
@@ -183,15 +186,15 @@ def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
     for cube_path in tqdm.tqdm(paths):
         
         with open(cube_path, 'rb') as f:
-            print(cube_path)
+            #print(cube_path)
             data = pickle.load(f)
-        
+            time.sleep(0.005)
         input_queue.put(data)
             
         while not serialized_queue.empty():
             serialized = serialized_queue.get()
             writer.write(serialized)
-
+            time.sleep(0.005)
     writer.close()
     [p.terminate() for p in processes]
 
@@ -321,10 +324,10 @@ def input_pipeline(train_files,
 
 
 if __name__ == '__main__':
-    pass
+
     #with open('D:\\qm9\\080684\\output.pkl', 'rb') as df:
         #data = pickle.load(df)
-    #train_validation_test_split('D:\qm9', 'C:\\Users\\jmg\\Desktop\\programming\data', train_size=1.0)
+    train_validation_test_split('/media/extssd/jarek/qm9_cubes', '/media/extssd/jarek/', train_size=0.9, valid_size=0.1)
     #a = input_fn('C:\\Users\\jmg\\Desktop\\programming\data\\train.tfrecords', properties=['num_atoms', 'smiles'])
     #i = iter(a)
     #d, n, s = i.__next__() 
