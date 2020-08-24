@@ -17,6 +17,7 @@ try:
 except:
     print('Rdkit not found')
 import tensorflow as tf
+from tokenizer import Tokenizer
 
     
 def wrap_float(value):
@@ -39,6 +40,7 @@ def wrap_string(value):
 
 def prepare_TFRecord(data):
     """Builds a tfrecod from data"""
+    tokenizer = Tokenizer('data\\')
     density = wrap_float_list(data['electron_density'].reshape(-1))
     record_dict = {'density': density,}
     
@@ -54,7 +56,9 @@ def prepare_TFRecord(data):
             record_dict[key] = key_data
     
     smiles = data['smiles']
-    record_dict['smiles'] = wrap_string(smiles)
+    encoded_smiles = tokenizer.encode_smiles(smiles)
+    record_dict['smiles_string'] = wrap_string(smiles)
+    record_dict['smiles'] = wrap_int_list(encoded_smiles)        
     mol = Chem.MolFromSmiles(smiles)
     
     num_atoms = mol.GetNumAtoms()
@@ -79,6 +83,8 @@ def parse_fn(serialized, properties=[]):
         if prop == 'num_atoms':
             features[prop] = tf.io.FixedLenFeature([1], tf.int64)
         elif prop == 'smiles':
+            features[prop] = tf.io.FixedLenFeature([24], tf.int64)
+        elif prop == 'smiles_string':
             features[prop] = tf.io.VarLenFeature(tf.string)
         else:
             features[prop] = tf.io.FixedLenFeature([1], tf.float32)
@@ -152,10 +158,10 @@ def convert_to_tfrecords(paths, out_path):
             
         except ValueError:
             pass
-        print('Reading time from disc', time_2- time_1)
-        print('Serialization time', time_3-time_2)
-        print('Writing time', end_time-time_3)
-        print('Overall time', end_time - time_1)
+        #print('Reading time from disc', time_2- time_1)
+        #print('Serialization time', time_3-time_2)
+        #print('Writing time', end_time-time_3)
+        #print('Overall time', end_time - time_1)
     writer.close()
 
 def worker(input_queue, serialized_queue):
@@ -206,13 +212,14 @@ def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
 
 def train_validation_test_split(path, output_dir,
                                 train_size=0.9,
-                                valid_size=0.1):
+                                valid_size=0.1,
+                                parallel=False):
     """
     Creates tfrecords for train, validation and test set.
 
     """
 
-    dirs = os.listdir(path)
+    dirs = os.listdir(path)[:5000]
     compounds_path = []
     print('Reading files')
     for compound in tqdm.tqdm(dirs):
@@ -238,14 +245,24 @@ def train_validation_test_split(path, output_dir,
     # generate tfrecords
     print('Preparing train set {} cubes'.format(len(train_set)))
     train_path = os.path.join(output_dir, 'train.tfrecords')
-    parellel_convert_to_tfrecords(train_set, train_path)
+    if parallel:
+        parellel_convert_to_tfrecords(train_set, train_path)
+    else:
+        convert_to_tfrecords(train_set, train_path)
+    
     print('Preparing valid set {}'.format(len(valid_set)))
     valid_path = os.path.join(output_dir, 'valid.tfrecords')
-    parellel_convert_to_tfrecords(valid_set, valid_path)
+    if parallel:
+        parellel_convert_to_tfrecords(valid_set, valid_path)
+    else:
+        convert_to_tfrecords(valid_set, valid_path)
     print('Preparing test set {}'.format(len(test_set)))
     test_path = os.path.join(output_dir, 'test.tfrecords')
-    parellel_convert_to_tfrecords(test_set, test_path)
-
+    if parallel:
+        parellel_convert_to_tfrecords(test_set, test_path)
+    else:
+        convert_to_tfrecords(test_set, test_path)
+    
 def input_fn(filenames, properties=[], train=True, num_epochs=1, batch_size=16, buffer_size=1000):
     """ Create tensorflow dataset which has functionality for reading and
         shuffling the data from tfrecods files.
@@ -327,10 +344,19 @@ if __name__ == '__main__':
 
     #with open('D:\\qm9\\080684\\output.pkl', 'rb') as df:
         #data = pickle.load(df)
+<<<<<<< HEAD
     train_validation_test_split('/media/extssd/jarek/qm9_cubes', '/media/extssd/jarek/', train_size=0.9, valid_size=0.1)
     #a = input_fn('C:\\Users\\jmg\\Desktop\\programming\data\\train.tfrecords', properties=['num_atoms', 'smiles'])
     #i = iter(a)
     #d, n, s = i.__next__() 
+=======
+    train_validation_test_split('D:\qm9', 'C:\\Users\\jmg\\Desktop\\programming\\', train_size=0.9, parallel=False)
+    
+    a = input_fn('C:\\Users\\jmg\\Desktop\\programming\\train.tfrecords',
+                 properties=['num_atoms', 'smiles'])
+    i = iter(a)
+    d, n, s = i.__next__() 
+>>>>>>> d20c99e826c1aec1b65e141d63ffd80fdf17308c
     #for i in iter(batch_density):
      #   print(tf.reduce_mean(i))
     #sys.path.append('C:\\Users\\group\\Desktop\\ElectronDensityML\\edml\\datagen\\')
@@ -343,13 +369,14 @@ if __name__ == '__main__':
 #    #train_validation_test_split('/mnt/orkney1/pm6', '/home/jarek/pm6nn', 'b3lyp_6-31g(d)')
     #from orbkit import grid, output
     #from cube import set_grid
-    #set_grid(64, 0.625)
+    #set_grid(16, 0.5)
     #grid.init_grid()
     #sess = tf.Session()
     #res, bs = sess.run([b_denisties, b_smiles])
     #index = 1
     #print(decode_smiles(bs[index], num2token))
-    #output.view_with_mayavi(grid.x, grid.y, grid.z, d[0, :, :, :, 0])
+    #patches = tf.extract_volume_patches(d, [1,4,4,4,1], [1, 4,4,4,1], padding='SAME')
+    #output.view_with_mayavi(grid.x, grid.y, grid.z, patches[0, :, :, :, 0])
     
     
     
