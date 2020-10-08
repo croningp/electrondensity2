@@ -17,7 +17,7 @@ try:
 except:
     print('Rdkit not found')
 import tensorflow as tf
-from electrondensity2.input.tokenizer import Tokenizer
+from .tokenizer import Tokenizer
 
     
 def wrap_float(value):

@@ -204,7 +204,7 @@ class ConvSelfAttn3D(Model):
         gx_flat = self.flatten(gx)
         hx_flat = self.flatten(hx)
         
-        raw_attn_weights = tf.tanh(tf.matmul(fx_flat, gx_flat, transpose_b=True))
+        raw_attn_weights = tf.matmul(fx_flat, gx_flat, transpose_b=True)
         raw_attn_weights = tf.transpose(raw_attn_weights, perm=[0,2,1])
         attn_weights = tf.nn.softmax(raw_attn_weights, axis=-1)
         
@@ -346,12 +346,14 @@ class Generator_v3(Model):
                  hidden_dim=1024,
                  activation_fn='relu', 
                  kernel_initializer=tf.keras.initializers.Orthogonal(),
-                 noise_distribution='uniform'):
+                 noise_distribution='uniform', 
+                 use_attn=False):
         
         super(Generator_v3, self).__init__()
         self.hidden_dim = hidden_dim
         self.use_batchnorm = use_batchnorm
         self.noise_distribution = noise_distribution
+        self.use_attn = use_attn
         
         self.resblockup_1 = ResBlockUp3D(256, use_batchnorm=use_batchnorm,
                                          activation_fn=activation_fn, 
@@ -373,7 +375,8 @@ class Generator_v3(Model):
         
         self.dense = Dense(4096, activation=activation_fn,
                            kernel_initializer=kernel_initializer)
-        #self.attn = ConvSelfAttn3D(attn_dim=32, output_dim=128)
+        if self.use_attn:
+            self.attn = ConvSelfAttn3D(attn_dim=32, output_dim=128)
 
 
     def call(self, batch_size, training):
@@ -387,13 +390,15 @@ class Generator_v3(Model):
         x = tf.reshape(x, [-1, 2, 2, 2, 512])
         x = self.resblockup_1(x, training=training)
         x = self.resblockup_2(x, training=training)
-        #x = self.attn(x)
+        if self.use_attn:
+            x = self.attn(x)
         x = self.resblockup_3(x, training=training)
         x = self.resblockup_4(x, training=training)
         x = self.up_sampling_4(x)
         x = self.conv_4(x)
                
         return x
+
         
 class Discriminator_v3(Model):
     def __init__(self, hidden_dim=1024, activation_fn='relu', use_attn=True,

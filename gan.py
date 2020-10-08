@@ -21,10 +21,10 @@ from tensorflow.keras import Model
 os.chdir('/home/jarek/electrondensity2')
 #os.chdir('Y:\\')
 
-from electrondensity2.input.tfrecords import input_fn
-from electrondensity2.layers import ResBlockDown3D, ResBlockUp3D, ConvSelfAttn3D, Generator_v3, Discriminator_v3
-from electrondensity2.layers import SpatialDiscriminator, TemporalDiscriminator
-from electrondensity2.utils import  transorm_ed, transorm_back_ed
+from input.tfrecords import input_fn
+from layers import ResBlockDown3D, ResBlockUp3D, ConvSelfAttn3D, Generator_v3, Discriminator_v3
+from layers import SpatialDiscriminator, TemporalDiscriminator
+from utils import  transorm_ed, transorm_back_ed
 
 
 
@@ -113,10 +113,28 @@ class GAN_Base():
         else:
             loss = self.generator_step_fn(*args, **kwargs)
         return loss
-        
     
-
-
+    
+    def sample_model(self, path=None, num_samples=1000, batch_size=32):
+        print('Electron density saved to {}'.format(path))
+        num_iter = num_samples // batch_size + 1
+        generated_cubes = []
+        
+        for i in tqdm.tqdm(range(num_iter)):
+            cubes = self.generator(batch_size, training=False)
+            cubes = transorm_back_ed(cubes).numpy()
+            generated_cubes.extend(cubes)
+        
+        generated_cubes = np.array(generated_cubes)[:num_samples]
+        
+        if path is not None:
+            with open(path, 'wb') as pfile:
+                pickle.dump(generated_cubes, pfile)
+            
+        return generated_cubes
+    
+    
+    
 class GP_WGAN(GAN_Base):
     def __init__(self, *args, **kwargs):
         super(GP_WGAN, self).__init__(*args, **kwargs)

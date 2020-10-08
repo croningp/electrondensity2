@@ -7,18 +7,20 @@ Created on Fri May  8 19:58:53 2020
 import os
 import numpy as np
 import tqdm
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import LSTM, Conv3D, MaxPool3D, AvgPool3D, UpSampling3D, Conv3DTranspose, Activation, BatchNormalization
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, AvgPool2D, LSTMCell, Dense
-from tfrecords import input_fn
-import matplotlib.pyplot as plt
+from electrondensity2.input.tfrecords import input_fn
+try:
+    import matplotlib.pyplot as plt
+except:
+    print('Matplotlib not found')
 
-
-physical_devices = tf.config.list_physical_devices('GPU') 
+#physical_devices = tf.config.list_physical_devices('GPU') 
 #try: 
-tf.config.experimental.set_memory_growth(physical_devices[0], True) 
+#tf.config.experimental.set_memory_growth(physical_devices[0], True) 
 
 class ResBlockDown(Model):
     def __init__(self, num_channels, pooling='MaxPool3D'):
@@ -165,19 +167,9 @@ def transorm_back(density):
 
 
 @tf.function
-def train_step(density, num_atoms):
-    
-    inception = Inception()
-    optimizer = tf.keras.optimizers.RMSprop(learning_rate=1e-5)
-    data_iterator = iter(input_fn('data\\train.tfrecords', properties=['num_atoms'],
-                              batch_size=20, num_epochs=100))
-
-    checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=inception)
-    checkpoint.restore('models\\inception.ckpt-92')
-    
+def train_step(density, num_atoms, inception, optimizer):
     num_atoms = num_atoms - 1
     num_atoms = num_atoms[:, 0]
-    
     density = tf.tanh(density)
     density = transorm_ed(density)
     with tf.GradientTape() as tape:
@@ -200,24 +192,37 @@ def train():
     accs = []
     avg_loss = 0.0
     avg_accs = 0.0
+    
+    inception = Inception()
+    optimizer = tf.keras.optimizers.RMSprop(learning_rate=1e-5)
+    data_iterator = iter(input_fn('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/train.tfrecords',
+                                  properties=['num_atoms'], batch_size=20, num_epochs=200, train=True))
+
+    checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=inception)
+    checkpoint.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/inception_models/inception.ckpt-40')
+    
+    
     for i in tqdm.tqdm(range(1, 100001)):
         densities, num_atoms = data_iterator.__next__()
-        loss, accuracy, pred, logits, targs = train_step(densities, num_atoms)
+        loss, accuracy, pred, logits, targs = train_step(densities,
+                                                         num_atoms,
+                                                         inception=inception,
+                                                         optimizer=optimizer)
         losses.append(loss.numpy())
         accs.append(accuracy.numpy())
         avg_loss = 0.999 * avg_loss + 0.001 * loss.numpy()
         avg_accs = 0.999 * avg_accs + 0.001 * accuracy.numpy()
         if i % 100 == 0:
             plt.imshow(targs[:])
-            plt.show()
+            plt.savefig('targets.png')
             plt.imshow(logits)
-            plt.show()
+            plt.savefig('logits.png')
             print(np.mean(losses), np.mean(accs))
             print(avg_loss, avg_accs)
             losses = []
             accs = []
         if i % 5000 == 0:
-            checkpoint.save('models\\inception.ckpt')
+            checkpoint.save('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/inception_models/inception.ckpt')
             
 
 def kl_divergence(proba, marginal):
@@ -239,7 +244,7 @@ def calculate_inception_score(data_iterator):
     
     inception = Inception()
     checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=inception)
-    checkpoint.restore('models\\inception.ckpt-112')
+    checkpoint.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/inception_models/inception.ckpt-40')
     
     proba = []
     
@@ -251,7 +256,10 @@ def calculate_inception_score(data_iterator):
         density = transorm_ed(density)
         predictions = tf.nn.softmax(inception(density), axis=-1)
         proba.append(predictions.numpy())
+        
             
+    
+    proba = proba[:-1]
     proba = np.array(proba)
     proba = proba.reshape([-1, 9])
         
@@ -282,22 +290,25 @@ def score(file_name):
 if __name__=='__main__':
     
     
-    dataset_iterator = iter(input_fn('data\\train.tfrecords',
-                              batch_size=20, num_epochs=1))
+   # train()
+    
+    #dataset_iterator = iter(input_fn('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/train.tfrecords',
+     #                         batch_size=32, num_epochs=1))
     
     
     
     
     
-    #data = np.load('1000.pkl.npy')
-    #dataset = tf.data.Dataset.from_tensor_slices(data)
+    data = np.load('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/gan_samples.pkl', allow_pickle=True)
+    dataset = tf.data.Dataset.from_tensor_slices(data)
     #dataset = dataset.map(transorm_back)
-    #dataset = dataset.batch(20)
-    #dataset = dataset.repeat(1)
+    dataset = dataset.batch(20)
+    dataset = dataset.repeat(1)
     
-    #dataset_iterator = iter(dataset)
+    dataset_iterator = iter(dataset)
     proba, marginal, inception, ent = calculate_inception_score(dataset_iterator)
-    
+    print('Entropy', ent)
+        
 
         
         

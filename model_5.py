@@ -18,7 +18,7 @@ from input.tfrecords import input_fn
 from layers import ResBlockDown3D, ResBlockUp3D, ConvSelfAttn3D, Generator_v3, Discriminator_v3
 from layers import SpatialDiscriminator, TemporalDiscriminator
 from utils import  transorm_ed, transorm_back_ed
-from gan import GP_WGAN, GANTrainer
+from gan import GP_WGAN, GANTrainer, LS_GAN
 
 
 
@@ -45,17 +45,17 @@ discrimator_config = {'activation_fn':'relu', 'use_attn':False,
                      'kernel_initializer':'orthogonal'}
 
 
-gan = GP_WGAN(Generator_v3, Discriminator_v3, generator_config, discrimator_config,
+gan = LS_GAN(Generator_v3, Discriminator_v3, generator_config, discrimator_config,
               distributed_training=True)
 
 
-gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/dis.ckpt-190',
-            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/gen.ckpt-190')
+#gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/dis.ckpt-190',
+#            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/gen.ckpt-190')
 
 
 #gan.sample_model('/home/jarek/samples.pkl')
-trainer = GANTrainer(gan, num_training_steps=100000, 
-                      steps_train_discriminator=5)
+trainer = GANTrainer(gan, num_training_steps=1000, 
+                      steps_train_discriminator=1)
 
 trainer.train()
     

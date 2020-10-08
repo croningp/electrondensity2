@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Apr 13 22:54:15 2020
+Created on Wed Sep 23 12:29:11 2020
 
-@author: jmg
+@author: group
 """
+
+
 import os
 import pickle
 import numpy as np
@@ -20,20 +22,7 @@ from electrondensity2.layers import SpatialDiscriminator, TemporalDiscriminator
 from electrondensity2.utils import  transorm_ed, transorm_back_ed
 from electrondensity2.gan import GP_WGAN, GANTrainer
 
-
-
-
-
-
-
-#generator_config = {}
-#discrimator_config = {}
-#                         discrimator_config)
-
-
-#gan = LS_GAN(Generator_v3, Discriminator_v3, generator_config, discrimator_config,
-        #      distributed_training=False, d_learning_rate=1e-5)
-
+from inception import calculate_inception_score
 
 
 generator_config = {'use_batchnorm':False, 'activation_fn':'elu',
@@ -47,22 +36,32 @@ discrimator_config = {'activation_fn':'relu', 'use_attn':False,
 gan = GP_WGAN(Generator_v3, Discriminator_v3, generator_config, discrimator_config,
               distributed_training=True)
 
-
-gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/dis.ckpt-110',
-            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/gen.ckpt-110')
-
-
-gan.sample_model('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/gan_samples.pkl', num_samples=10000)
+entropies = []
+incpetion_scores = []
 
 
-#trainer = GANTrainer(gan, num_training_steps=100000, 
-#                     steps_train_discriminator=5)
-
+for ckpt in tqdm.tqdm(range(10, 130, 10)):
     
-
+    try:
+        gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/dis.ckpt-{}'.format(ckpt),
+            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/gen.ckpt-{}'.format(ckpt))
+    except:
+        continue
+    samples = gan.sample_model(num_samples=10000)
     
-
     
+    dataset = tf.data.Dataset.from_tensor_slices(samples)
+    #dataset = dataset.map(transorm_back)
+    dataset = dataset.batch(20)
+    dataset = dataset.repeat(1)
+    
+    dataset_iterator = iter(dataset)
+    proba, marginal, inception, ent = calculate_inception_score(dataset_iterator)
+    print('Entropy', ent)
+        
+    entropies.append(ent)
+    incpetion_scores.append(inception)
 
-
-
+print(entropies)
+print('----------------------------------')
+print(incpetion_scores)
