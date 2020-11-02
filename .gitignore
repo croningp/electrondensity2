@@ -1,6 +1,7 @@
 # Python
 .ipynb_checkpoints
 *.pyc
+*.pkl
 *.pyo
 __pycache__/
 build
