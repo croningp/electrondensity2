@@ -7,12 +7,12 @@ Created on Fri May  8 19:58:53 2020
 import os
 import numpy as np
 import tqdm
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import LSTM, Conv3D, MaxPool3D, AvgPool3D, UpSampling3D, Conv3DTranspose, Activation, BatchNormalization
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, AvgPool2D, LSTMCell, Dense
-from electrondensity2.input.tfrecords import input_fn
+from input.tfrecords import input_fn
 try:
     import matplotlib.pyplot as plt
 except:
@@ -143,7 +143,7 @@ class Inception(Model):
         #x = self.flatten(x)
         x = tf.reduce_sum(x, axis=[1,2,3])
         #x = self.activation(x)
-        return self.dense(x)
+        return x, self.dense(x)
 
 
     
@@ -173,7 +173,7 @@ def train_step(density, num_atoms, inception, optimizer):
     density = tf.tanh(density)
     density = transorm_ed(density)
     with tf.GradientTape() as tape:
-        predictions = inception(density)
+        _, predictions = inception(density)
         targets = tf.one_hot(num_atoms, depth=9)
         loss = tf.nn.softmax_cross_entropy_with_logits(labels=targets, logits=predictions)
         loss = tf.reduce_mean(loss)
@@ -202,7 +202,7 @@ def train():
     checkpoint.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/inception_models/inception.ckpt-40')
     
     
-    for i in tqdm.tqdm(range(1, 100001)):
+    for i in tqdm.tqdm(range(1, 500001)):
         densities, num_atoms = data_iterator.__next__()
         loss, accuracy, pred, logits, targs = train_step(densities,
                                                          num_atoms,
@@ -254,7 +254,9 @@ def calculate_inception_score(data_iterator):
             density = density[0]
         density = tf.tanh(density)
         density = transorm_ed(density)
-        predictions = tf.nn.softmax(inception(density), axis=-1)
+        
+        _, predictions = inception(density)
+        predictions = tf.nn.softmax(predictions, axis=-1)
         proba.append(predictions.numpy())
         
             
@@ -289,8 +291,7 @@ def score(file_name):
 
 if __name__=='__main__':
     
-    
-   # train()
+    train()
     
     #dataset_iterator = iter(input_fn('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/train.tfrecords',
      #                         batch_size=32, num_epochs=1))
@@ -299,15 +300,15 @@ if __name__=='__main__':
     
     
     
-    data = np.load('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/gan_samples.pkl', allow_pickle=True)
-    dataset = tf.data.Dataset.from_tensor_slices(data)
+    #data = np.load('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/gan_samples.pkl', allow_pickle=True)
+    #dataset = tf.data.Dataset.from_tensor_slices(data)
     #dataset = dataset.map(transorm_back)
-    dataset = dataset.batch(20)
-    dataset = dataset.repeat(1)
+    #dataset = dataset.batch(20)
+    #dataset = dataset.repeat(1)
     
-    dataset_iterator = iter(dataset)
-    proba, marginal, inception, ent = calculate_inception_score(dataset_iterator)
-    print('Entropy', ent)
+    #dataset_iterator = iter(dataset)
+    #proba, marginal, inception, ent = calculate_inception_score(dataset_iterator)
+    #print('Entropy', ent)
         
 
         
