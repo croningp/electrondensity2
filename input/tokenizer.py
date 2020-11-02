@@ -54,9 +54,9 @@ def get_dataset_smiles(path):
     """
     
     
-    if os.path.exists('data\\dataset_smiles'):
-        with open('data\\dataset_smiles.pkl', 'rb') as file:
-            dataset_smiles = pickle.load(smiles_list, file)
+    if os.path.exists('dataset_smiles.pkl'):
+        with open('dataset_smiles.pkl', 'rb') as file:
+            dataset_smiles = pickle.load(file)
             return dataset_smiles
     
     dirs = os.listdir(path)
@@ -67,10 +67,10 @@ def get_dataset_smiles(path):
         with open(compound_path, 'rb') as file:
             data = pickle.load(file)
             smiles = data['smiles']
-        
+            smiles = canonical_smiles(smiles)
             smiles_list.append(smiles)
             
-    with open('data\\dataset_smiles.pkl', 'wb') as file:
+    with open('dataset_smiles.pkl', 'wb') as file:
         pickle.dump(smiles_list, file)
         
     return smiles_list
@@ -200,7 +200,7 @@ class Tokenizer():
         tokens = ['START'] + tokenize_smiles(smiles) + ['STOP']
         num_tokens = len(tokens)
         if self.max_length - num_tokens < 0:
-            raise ValueError('The lenght of smiles {} is larger then max {}'.format(smiles, length))
+            raise ValueError('The lenght of smiles {} is larger then max {}'.format(smiles, num_tokens))
         append_tokens = ['NULL'] * (self.max_length - num_tokens)
         tokens += append_tokens
         encoded_smiles = list(map(self.token2num.get, tokens))
