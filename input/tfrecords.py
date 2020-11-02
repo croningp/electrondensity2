@@ -14,10 +14,11 @@ from functools import partial
 from collections import namedtuple
 try:
     from rdkit import Chem
+    from rdkit.Chem import AllChem
 except:
     print('Rdkit not found')
 import tensorflow as tf
-from .tokenizer import Tokenizer
+from input.tokenizer import Tokenizer
 
     
 def wrap_float(value):
@@ -40,7 +41,7 @@ def wrap_string(value):
 
 def prepare_TFRecord(data):
     """Builds a tfrecod from data"""
-    tokenizer = Tokenizer('data\\')
+    tokenizer = Tokenizer('/home/jarek/electrondensity2/data')
     density = wrap_float_list(data['electron_density'].reshape(-1))
     record_dict = {'density': density,}
     
@@ -58,7 +59,12 @@ def prepare_TFRecord(data):
     smiles = data['smiles']
     encoded_smiles = tokenizer.encode_smiles(smiles)
     record_dict['smiles_string'] = wrap_string(smiles)
-    record_dict['smiles'] = wrap_int_list(encoded_smiles)        
+    record_dict['smiles'] = wrap_int_list(encoded_smiles)
+    mol = Chem.MolFromSmiles(smiles)
+    fp = AllChem.GetMorganFingerprintAsBitVect(mol,2,nBits=1024)
+    fpn = np.array(fp).astype(np.float32)
+    record_dict['fp'] = wrap_float_list(fpn)
+            
     mol = Chem.MolFromSmiles(smiles)
     
     num_atoms = mol.GetNumAtoms()
@@ -84,6 +90,8 @@ def parse_fn(serialized, properties=[]):
             features[prop] = tf.io.FixedLenFeature([1], tf.int64)
         elif prop == 'smiles':
             features[prop] = tf.io.FixedLenFeature([24], tf.int64)
+        elif prop == 'fp':
+            features[prop] = tf.io.FixedLenFeature([1024], tf.float32)
         elif prop == 'smiles_string':
             features[prop] = tf.io.VarLenFeature(tf.string)
         else:
@@ -148,16 +156,15 @@ def convert_to_tfrecords(paths, out_path):
         time_1 = time.time()
         with open(cube_path, 'rb') as f:
             data = pickle.load(f)
-        try:
-            time_2 = time.time()
-            example = prepare_TFRecord(data)
-            serialized = example.SerializeToString()
-            time_3 = time.time()
-            writer.write(serialized)
-            end_time = time.time()
+        
+        time_2 = time.time()
+        example = prepare_TFRecord(data)
+        serialized = example.SerializeToString()
+        time_3 = time.time()
+        writer.write(serialized)
+        end_time = time.time()
             
-        except ValueError:
-            pass
+        
         #print('Reading time from disc', time_2- time_1)
         #print('Serialization time', time_3-time_2)
         #print('Writing time', end_time-time_3)
@@ -214,7 +221,7 @@ def train_validation_test_split(path, output_dir,
 
     """
 
-    dirs = os.listdir(path)[:5000]
+    dirs = os.listdir(path)
     compounds_path = []
     print('Reading files')
     for compound in tqdm.tqdm(dirs):
@@ -293,10 +300,12 @@ if __name__ == '__main__':
     pass
     #with open('D:\\qm9\\080684\\output.pkl', 'rb') as df:
         #data = pickle.load(df)
-#<<<<<<< HEAD
-#    train_validation_test_split('/media/extssd/jarek/qm9_cubes', '/media/extssd/jarek/', train_size=0.9, valid_size=0.1)
-#    #a = input_fn('C:\\Users\\jmg\\Desktop\\programming\data\\train.tfrecords', properties=['num_atoms', 'smiles'])
-#    #i = iter(a)
+
+    train_validation_test_split('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/qm9_cubes',
+                                '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek',
+                                train_size=0.9, valid_size=0.1, parallel=True)
+    #a = input_fn('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/train.tfrecords', properties=[ 'fp'])
+  #  i = iter(a)
 #    #d, n, s = i.__next__() 
 #=======
 #    train_validation_test_split('D:\qm9', 'C:\\Users\\jmg\\Desktop\\programming\\', train_size=0.9, parallel=False)
