@@ -10,7 +10,6 @@ import pickle
 import numpy as np
 import tqdm
 import time
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2"
 import tensorflow as tf
 from tensorflow.python.client import device_lib
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, AvgPool2D, LSTMCell, Dense
@@ -134,6 +133,50 @@ class GAN_Base():
         return generated_cubes
     
     
+    
+    def explore_latent_space(self, num_steps=10, batch_size=32):
+        
+        noise_z1 = self.generator.sample_z(batch_size)
+        noise_z2 = self.generator.sample_z(batch_size)
+        
+        noise_diff = noise_z2 - noise_z1
+        noise_step = noise_diff / num_steps
+        
+        
+        for i in range(num_steps+1):
+            noise = noise_z1 + i * noise_step
+            cubes = self.generator.generate(noise, training=False)
+            cubes = transorm_back_ed(cubes).numpy()
+            with open('step{}.pkl'.format(i), 'wb') as pfile:
+                pickle.dump(cubes, pfile)
+                
+                
+    def explore_latent_space_v2(self, num_steps=10, batch_size=32):
+        
+        noise_z1 = self.generator.sample_z(batch_size)
+        noise_z2 = self.generator.sample_z(batch_size)
+        noise_z3 = self.generator.sample_z(batch_size)
+        
+        noise_diff = noise_z2 - noise_z1
+        noise_step = noise_diff / num_steps
+        
+        noise_diff2 = noise_z3 - noise_z2
+        noise_step2 = noise_diff2 / num_steps
+        
+        for i in range(num_steps+1):
+            noise = noise_z1 + i * noise_step
+            cubes = self.generator.generate(noise, training=False)
+            cubes = transorm_back_ed(cubes).numpy()
+            with open('step{}.pkl'.format(i), 'wb') as pfile:
+                pickle.dump(cubes, pfile)
+        
+        for i in range(num_steps+1):
+            noise = noise_z2 + i * noise_step2
+            cubes = self.generator.generate(noise, training=False)
+            cubes = transorm_back_ed(cubes).numpy()
+            with open('step{}.pkl'.format(i+num_steps), 'wb') as pfile:
+                pickle.dump(cubes, pfile)
+            
     
 class GP_WGAN(GAN_Base):
     def __init__(self, *args, **kwargs):
@@ -259,7 +302,7 @@ class GANTrainer():
                  steps_train_discriminator=5,
                  write_summary=True,
                  save_model_every_steps=1000,
-                 path='/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/'
+                 path='/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek'
                  ):
         
         self.gan = gan
