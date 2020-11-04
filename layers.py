@@ -378,15 +378,10 @@ class Generator_v3(Model):
         if self.use_attn:
             self.attn = ConvSelfAttn3D(attn_dim=32, output_dim=128)
 
-
-    def call(self, batch_size, training):
-        if self.noise_distribution == 'uniform':
-            print('Using uniform noise distribution')
-            z = tf.random.uniform([batch_size, self.hidden_dim], minval=-1.0, maxval=1.0)
-        elif self.noise_distribution == 'normal':
-            print('Using normal noise distribution')
-            z = tf.random.normal([batch_size, self.hidden_dim], mean=0.0, stddev=1.0)
-        x = self.dense(z)
+    
+    def generate(self, z_noise, training):
+        
+        x = self.dense(z_noise)
         x = tf.reshape(x, [-1, 2, 2, 2, 512])
         x = self.resblockup_1(x, training=training)
         x = self.resblockup_2(x, training=training)
@@ -398,6 +393,21 @@ class Generator_v3(Model):
         x = self.conv_4(x)
                
         return x
+        
+    
+    def sample_z(self, batch_size):
+        if self.noise_distribution == 'uniform':
+            z = tf.random.uniform([batch_size, self.hidden_dim], minval=-1.0, maxval=1.0)
+        elif self.noise_distribution == 'normal':
+            z = tf.random.normal([batch_size, self.hidden_dim], mean=0.0, stddev=1.0)
+        return z
+    
+    def call(self, batch_size, training):
+        z = self.sample_z(batch_size)
+        x = self.generate(z, training)
+        return x
+            
+       
 
         
 class Discriminator_v3(Model):
@@ -414,7 +424,7 @@ class Discriminator_v3(Model):
         self.resblok_5 = ResBlockDown3D(512, activation_fn=activation_fn, kernel_initializer=kernel_initializer)
 
         self.avg_pool_1 = MaxPool3D(2)
-
+        
 
         self.activation = Activation(activation_fn)
         if self.use_attn:
