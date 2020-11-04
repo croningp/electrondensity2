@@ -38,7 +38,8 @@ from electrondensity2.gan import GP_WGAN, GANTrainer
 
 generator_config = {'use_batchnorm':False, 'activation_fn':'elu',
                     'kernel_initializer':'glorot_uniform',
-                    'noise_distribution':'normal'}
+                    'noise_distribution':'normal', 
+                    'use_layernorm':False}
 
 discrimator_config = {'activation_fn':'relu', 'use_attn':False, 
                      'kernel_initializer':'orthogonal'}
@@ -52,8 +53,8 @@ gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/dis
             '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/gen.ckpt-110')
 
 
-gan.sample_model('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/gan_samples.pkl', num_samples=10000)
-
+#gan.sample_model('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/gan_samples.pkl', num_samples=10000)
+a = gan.sample_model('/home/jarek/samples.pkl', num_samples=60)
 
 #trainer = GANTrainer(gan, num_training_steps=100000, 
 #                     steps_train_discriminator=5)

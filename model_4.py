@@ -49,15 +49,17 @@ gan = GP_WGAN(Generator_v3, Discriminator_v3, generator_config, discrimator_conf
               distributed_training=True)
 
 
-gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/dis.ckpt-190',
-            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/models/gen.ckpt-190')
+gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_4/dis.ckpt-180',
+            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_4/gen.ckpt-190')
 
 
-#gan.sample_model('/home/jarek/samples.pkl')
-trainer = GANTrainer(gan, num_training_steps=100000, 
-                      steps_train_discriminator=5)
+#a = gan.sample_model('/home/jarek/samples.pkl', num_samples=100)
+gan.explore_latent_space_v2(num_steps=20)
 
-trainer.train()
+#trainer = GANTrainer(gan, num_training_steps=100000, 
+#                      steps_train_discriminator=5)
+
+#trainer.train()
     
     
 
