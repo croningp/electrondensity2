@@ -160,7 +160,9 @@ def parse_dataset(dataset_path, result_dir):
         parse_single_qm9_file(file_path, output_dir)
     
 if __name__ == '__main__':
-    parse_dataset('data/', '/media/extssd/jarek/qm9_cubes') 
+    pass
+    #parse_dataset('data/', '/media/extssd/jarek/qm9_cubes') 
+    #parse_single_qm9_file('/home/jarek/electrondensity2/data/dsgdb9nsd_133885.xyz', '/home/jarek/')
    # source_path = 'C:\\Users\\jmg\\Desktop\\programming\\electrondensity2_testing\\data\\qm9'
    # out_dir = 'D:\\qm9'
    # folders = os.listdir(out_dir)

@@ -174,7 +174,13 @@ def prepare_xtb_from_xyz(file_path, output_file):
 
 
 if __name__ == '__main__':
-    pass
+   #prepare_xtb_from_xyz('/home/jarek/cucurbituril/cc6.xyz', '/home/jarek/cucurbituril/xtb.inp')
+    ed = parse_molden_file('/home/jarek/cucurbituril/molden.input', n_points=64, step_size=0.5)
+    ed = np.expand_dims(ed, axis=-1)
+    ed = np.expand_dims(ed, axis=0)
+    import pickle
+    with open('/home/jarek/cucurbituril/cc6.pkl', 'wb') as file:
+        pickle.dump(ed, file)
     #prepare_data('C:\\Users\\group\\Desktop\\test', n_points=64,
      #            step_size=0.625, basisset='b3lyp_6-31g(d)')
     #canonical_data('C:\\Users\\group\\Desktop\\test')
