@@ -136,6 +136,16 @@ def coarse_grain(rho, size=4):
 
 
 def prepare_xtb_from_xyz(file_path, output_file):
+    """
+    Prepares xtb input file from xyz file and also centeres the molecule
+    at the begining of coordinate system.
+    
+    Args:
+        file_path: string path to xyz file 
+        output_file: string path of the output file  
+        
+
+    """
     with open(file_path, 'r') as file:
         data = file.readlines()
     
@@ -170,17 +180,3 @@ def prepare_xtb_from_xyz(file_path, output_file):
         for c in new_coords:
             file.write('\t'.join(c)+'\n')
         file.write('$end\n') 
-        
-
-
-if __name__ == '__main__':
-   #prepare_xtb_from_xyz('/home/jarek/cucurbituril/cc6.xyz', '/home/jarek/cucurbituril/xtb.inp')
-    ed = parse_molden_file('/home/jarek/cucurbituril/molden.input', n_points=64, step_size=0.5)
-    ed = np.expand_dims(ed, axis=-1)
-    ed = np.expand_dims(ed, axis=0)
-    import pickle
-    with open('/home/jarek/cucurbituril/cc6.pkl', 'wb') as file:
-        pickle.dump(ed, file)
-    #prepare_data('C:\\Users\\group\\Desktop\\test', n_points=64,
-     #            step_size=0.625, basisset='b3lyp_6-31g(d)')
-    #canonical_data('C:\\Users\\group\\Desktop\\test')

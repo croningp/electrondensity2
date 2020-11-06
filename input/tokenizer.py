@@ -25,8 +25,14 @@ def mol_to_smiles(path, mol_format='mol'):
     smiles = smiles.split('\t')[0]
     return smiles
 
-
 def canonical_smiles(smiles):
+    """Makes smiles string canonical using rdkit algoritm.
+    
+    Args:
+        smiles: string with molecular smiles
+    Returns:
+        smiles: string with canonical smiles
+    """
     mol = rdkit.Chem.MolFromSmiles(smiles)
     smiles = rdkit.Chem.MolToSmiles(mol)
     return smiles
@@ -79,6 +85,10 @@ def get_dataset_smiles(path):
 def get_unique_tokens(smiles_list):
     """Compiles a list of unique tokens for the whole dataset 
         of smiles.
+        Args:
+            smiles_list: list with smiles string
+        Returns:
+            unique_tokens: list with unique tokens for the dataset
     """
     
     unique_tokens = []
@@ -92,6 +102,17 @@ def get_unique_tokens(smiles_list):
 
 
 def get_dictionaries(dataset_smiles):
+    """
+    Create dictionaries allowing for conversion of smiles string into one-hot 
+    encoded representation.
+    
+    Args:
+        dataset_smiles: a list with smiles string of the dataset
+    Returns:
+        num2token: a dict for converting a int index into its string
+        representation
+        token2num: a dict for converting a token into int value 
+    """
     stats = get_dictionary_stats(dataset_smiles)
     print(stats)
     unique_tokens = get_unique_tokens(dataset_smiles)
@@ -105,23 +126,32 @@ def get_dictionaries(dataset_smiles):
         token2num[token] = idx
     print(num2token)
     print(token2num)
-    
     return num2token, token2num
 
-
-
 def encode_dataset(smiles_list, token2num):
+    """
+    Encodes the dataset using token2num dict.
+    
+    
+    """
 
 
     encoded = []
     for sm in smiles:
         encoded_molecule = encode_smiles(sm, token2num)
         encoded.append(encoded_molecule)
-    
     return encoded
 
 
 def tokenize_dataset(smiles_list):
+    """
+    Tokenizes the list of smiles strings
+    Args:
+        smiles_list: a list with smiles strings
+    Returns:
+        tokenized_smiles: a list  of list with tokens for each smiles
+    
+    """
     tokenized_smiles = []
     for smiles in smiles_list:
         tokenized = tokenize_smiles(smiles)
@@ -132,11 +162,25 @@ def tokenize_dataset(smiles_list):
 
 def get_max_length(smiles_list):
     """
+    Computes the max lenght of smiles in the dataset to which shorter strings
+    should be padded. 
+    Args:
+        smiles_list: a list with smiles strings 
+    Returns:
+        max_len: int for to which pad shorter smiles
     """
     lengths = list(map(len, smiles_list))    
-    return max(lengths) + 2
+    max_len = max(lengths) + 2
+    return max_len
 
 def get_dictionary_stats(smiles_list):
+    """
+    Computes the tokens stats in the dataset
+    Args:
+        smiles_list: a list with smiles strings
+    Returns:
+        sorted_dict: a list with tokens sorted according to popularity
+    """
     stats = {}
     for sm in smiles_list:
         tokens = tokenize_smiles(sm)
@@ -145,17 +189,27 @@ def get_dictionary_stats(smiles_list):
                 stats[t] = 1
             else:
                 stats[t] += 1
-    return sorted(stats.items(), key=lambda stats: stats[1], reverse=True)
     
-
-
-
-
-
+    sorted_dict = sorted(stats.items(), key=lambda stats: stats[1],
+                         reverse=True)
+    return  sorted_dict
+    
 
 class Tokenizer():
+    """
+    Class handling encoding and decoding of smiles strings
+    """
     
     def __init__(self, path, initialize_from_dataset=False, dataset_path=None):
+        """Initializer for the class, by default it will look for json with 
+        its configuration in the path folder. If the config doesn't
+        exist it needs to be initialized from the processed dataset.
+        Args:
+            path: a path to the folder where tokenizer config file is
+            initialize_from_dataset: a bool if to initialize config from the
+            datast
+            dataset_path: a string with path to processed dataset
+        """
         
         conf_path = os.path.join(path, 'tokenizer.json')
         
@@ -194,6 +248,14 @@ class Tokenizer():
             
     def encode_smiles(self, smiles):
         """
+        Encodes the smiles string into vector representation using token2num
+        dict.
+        
+        Args:
+            smiles: string with smiles
+        Returns:
+            encoded_smiles: an array of ints with encoded smiles
+        
         """
 
         smiles = canonical_smiles(smiles)
@@ -209,20 +271,30 @@ class Tokenizer():
             raise ValueError('One or more tokens are not present in the dictionary')
         return encoded_smiles
     
-    
-    
     def decode_smiles(self, encoded_smiles):
         """
+        Decodes a single smiles string
+        Args:
+            encoded_smiles: an array of size [seq_len]
+        Returns:
+               smiles: string with smiles 
         """
         avoid_tokens = ['START', 'STOP', 'NULL']
         encoded_smiles = [str(t) for t in encoded_smiles]
         tokens = list(map(self.num2token.get, encoded_smiles))
-        print(tokens)
         tokens = [t for t in tokens if t not in avoid_tokens]
-        return ''.join(tokens)
+        smiles = ''.join(tokens)
+        return smiles
     
     def batch_decode_smiles(self, encoded_smiles):
         """
+        Decode smiles in the batch
+        Args:
+            encoded_smiles: an array of ints with dim [batch_size, seq_len]
+        Return:
+            decoded_smiles: an array with of len batch_size with decoded smiles
+            strings
+            
         """
         decoded_smiles = [self.decode_smiles(s) for s in encoded_smiles]
         return decoded_smiles

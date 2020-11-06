@@ -6,11 +6,23 @@ from tensorflow.keras import Model
 
 
 class ResBlockDown3D(Model):
+    """
+    Single resnet like layer for downsampling 3D tensors.
+    """
     def __init__(self,
                  num_channels,
                  pooling='MaxPool3D',
                  activation_fn='relu',
                  kernel_initializer=tf.keras.initializers.Orthogonal()):
+        """
+            Layer initializer
+            Args:
+                num_channels: int the number of output chanells from the layers
+                pooling: string MaxPool3D or AvgPool3D to use to reduce dimensions
+                activation_fn: str with a type of activation function to use 
+                kernel_initializer: kernel initializer for 3DConv layers
+        """
+        
         super(ResBlockDown3D,self).__init__()
         self.num_channels = num_channels
         self.conv_1x1 = Conv3D(num_channels, 1, padding='same',  kernel_initializer=kernel_initializer)
@@ -27,7 +39,14 @@ class ResBlockDown3D(Model):
             
         
     def call(self, inputs):
-        
+        """
+        Passes the input tensor through the layer
+        Args:
+            inputs: tensor of shape [batch_size, cube_dim, cube_dim, cube_dim, inp_chan]
+        Returns:
+            output: tensor of shape [batch_size, cube_dim//2, cube_dim//2, cube_dim//2, num_channels]
+            
+        """
         layer_1a = self.conv_1x1(inputs)
         layer_1a = self.pooling(layer_1a)
     
@@ -36,18 +55,31 @@ class ResBlockDown3D(Model):
         layer_1b = self.activation(layer_1b)
         layer_1b = self.conv_3x3b(layer_1b)
         layer_1b = self.pooling(layer_1b)
-        
-        
+
         output = layer_1a + layer_1b
-        
         return output
     
 class ResBlockUp3D(Model):
+    """
+    Single resnet like layer for upsampling 3D tensors.
+    """
+    
     def __init__(self,
                  num_channels,
                  use_batchnorm=False,
                  activation_fn='relu',
                  kernel_initializer=tf.keras.initializers.Orthogonal()):
+        """
+        Layer initializer
+            Args:
+                num_channels: int the number of output chanells from the layers
+                use_batchnorm: bool if use batch normalization within layer
+                activation_fn: str with a type of activation function to use 
+                kernel_initializer: kernel initializer for 3DConv layers
+        """
+        
+        
+        
         super(ResBlockUp3D, self).__init__()
         self.num_channels = num_channels
         self.use_batchnorm = use_batchnorm
@@ -63,6 +95,14 @@ class ResBlockUp3D(Model):
         self.upsampling = UpSampling3D(2)
         
     def call(self, inputs, training):
+        
+        """
+        Passes the input tensor through the layer
+        Args:
+            inputs: tensor of shape [batch_size, cube_dim, cube_dim, cube_dim, inp_chan]
+        Returns:
+            output: tensor of shape [batch_size, cube_dim*2, cube_dim*2, cube_dim*2, num_channels]  
+        """
         
         layer_1a = self.upsampling(inputs)
         layer_1a = self.conv_1x1(layer_1a)

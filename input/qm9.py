@@ -13,7 +13,7 @@ import tqdm
 from electrondensity2.input.cube import parse_molden_file
 
 def read_qm9_file(path):
-    """Parses a single file from qm9 database
+    """Parses a single file from qm9 dataset
         https://springernature.figshare.com/collections/Quantum_chemistry_str\\
         uctures_and_properties_of_134_kilo_molecules/978904/5
         
@@ -36,6 +36,13 @@ def read_qm9_file(path):
         15  H         Hartree      Enthalpy at 298.15 K
         16  G         Hartree      Free energy at 298.15 K
         17  Cv        cal/(mol K)  Heat capacity at 298.15 K
+        
+        Returns:
+            num_atoms: int number of atoms in molecule
+            prop_dict: dict with properties extracted from files
+            coordinates: array with atoms and their coordiantes strings
+            frequencies: array with molecular frequencies
+            smiles: string with the smiles of molecule
         
     """
     with open(path) as qm9_file:
@@ -60,6 +67,17 @@ def read_qm9_file(path):
     return num_atoms, prop_dict, coordinates, frequencies, smiles
 
 def prepare_xtb_input(file_path, coordinates):
+    """
+    Prepares xtb input file from array of atoms and their coordnates 
+    and save is to disk.
+
+    Args:
+        file_path: string path to where create the input file
+        coordinates: array with strings of atoms and their coordinates
+        
+    Returns:
+        None
+    """
     
     coordinates = [c[1:]+[c[0]] for c in coordinates]
     coordinates_xyz = [c[:-1] for c in coordinates]
@@ -69,9 +87,6 @@ def prepare_xtb_input(file_path, coordinates):
     max_coords = np.max(coordinates_xyz, axis=0)
     diff = min_coords + (max_coords-min_coords) / 2
     diff = diff.reshape([1, -1])
-    print(coordinates_xyz)
-    print(diff)
-    print(coordinates_xyz-diff)
     mod_coords = coordinates_xyz - diff
     mod_coords = [ [str(f) for f in c] for c in mod_coords]
     
@@ -80,8 +95,6 @@ def prepare_xtb_input(file_path, coordinates):
         new_line = c
         new_line.append(coordinates[idx][-1])
         new_coords.append(new_line)
-
-    #print(new_coords)
 
     with open(file_path, 'w+') as file:
         file.write('$coords angs\n')
@@ -131,6 +144,8 @@ def parse_single_qm9_file(
         Args:
             input_path (str): qm9 file to extract properties and molecular geometry
             out_dir (str): directory where output files will be stored
+        Returns:
+            None
     
     """
     num_atoms, properties, coords, _, smiles =  read_qm9_file(input_path)
@@ -151,6 +166,15 @@ def parse_single_qm9_file(
         pickle.dump(output_dict, ofile)
 
 def parse_dataset(dataset_path, result_dir):
+    """
+    Parses all the files in the dataset
+        Args:
+            dataset_path: str to the folder with the qm9 dataset
+            result_dit: str to the folder where the results will be saved
+            
+        Returns:
+            None
+    """
     files = os.listdir(dataset_path)
     os.makedirs(result_dir, exist_ok=True)
     for f in tqdm.tqdm(files):

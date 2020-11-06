@@ -69,9 +69,6 @@ def prepare_TFRecord(data):
     
     num_atoms = mol.GetNumAtoms()
     record_dict['num_atoms'] = wrap_int_list([num_atoms])
-    #print(smiles)
-    #print(num_atoms)
-    #print()
     record = tf.train.Features(feature=record_dict)
     tfrecord = tf.train.Example(features=record)
     return tfrecord
@@ -80,11 +77,7 @@ def prepare_TFRecord(data):
 def parse_fn(serialized, properties=[]):
     """Parse the serialized object."""
     features =\
-                {
-                'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32),
-                #'homo_lumo_gap':tf.FixedLenFeature([1], tf.float32),
-                #'smiles':tf.FixedLenFeature([35], tf.int64)
-                    }
+                {'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32),}
     for prop in properties:
         if prop == 'num_atoms':
             features[prop] = tf.io.FixedLenFeature([1], tf.int64)
@@ -101,7 +94,6 @@ def parse_fn(serialized, properties=[]):
     parsed_example = tf.io.parse_single_example(serialized, features=features)
     density = parsed_example['density']
     density = tf.expand_dims(density, axis=-1)
-    #homo_lumo_gap = parsed_example['homo_lumo_gap'][0]
     properties = [parsed_example[p] for p in properties]
     return (density, *properties)
 
@@ -112,12 +104,12 @@ def train_preprocess(electron_density, *args):
 
     Args:
         electron_density: An array of shape [cube_x, cube_y, cube_z]
-        homo_lumo_gap: float a value of the homo-lumo_gap
+        *args: float a value of the homo-lumo_gap
 
     Return:
         electron_density: a new electron denisty flipped either along
         x, y, or z axis
-        homo_lumo_gap: original homo lumo
+       
     """
     input_shape = electron_density.get_shape().as_list()
     # flip each along each axes
@@ -142,7 +134,6 @@ def train_preprocess(electron_density, *args):
 
 def convert_to_tfrecords(paths, out_path):
     """ Serializes all the data into one file with TFRecords.
-
         Args:
             path: string the main folder with cube files
             outpath: path where to save the tfrecods
@@ -153,25 +144,24 @@ def convert_to_tfrecords(paths, out_path):
     writer = tf.io.TFRecordWriter(out_path)
 
     for cube_path in tqdm.tqdm(paths):
-        time_1 = time.time()
+        
         with open(cube_path, 'rb') as f:
             data = pickle.load(f)
-        
-        time_2 = time.time()
         example = prepare_TFRecord(data)
         serialized = example.SerializeToString()
-        time_3 = time.time()
         writer.write(serialized)
-        end_time = time.time()
-            
-        
-        #print('Reading time from disc', time_2- time_1)
-        #print('Serialization time', time_3-time_2)
-        #print('Writing time', end_time-time_3)
-        #print('Overall time', end_time - time_1)
     writer.close()
 
 def worker(input_queue, serialized_queue):
+    """
+    Worker process for parallel serialization
+    Args:
+        input_queue: Queue for input data
+        serialized_queue: Queue to put processed data
+    Return:
+        None
+
+    """
     while True:
             data = input_queue.get()
             example = prepare_TFRecord(data)
@@ -180,15 +170,13 @@ def worker(input_queue, serialized_queue):
             
 def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
     """ Serializes all the data into one file with TFRecords.
-
         Args:
             path: string the main folder with cube files
-            outpath: path where to save the tfrecods
+            outpath: string path where to save the tfrecods
             num_processes: int how many processes use for serialization
         Returns:
             None
     """
-    print('-----------------',len(paths))
     import multiprocessing as mp
     input_queue = mp.Queue(maxsize=1000)
     serialized_queue = mp.Queue(maxsize=1000)
@@ -199,7 +187,6 @@ def parellel_convert_to_tfrecords(paths, out_path, num_processes=12):
     for cube_path in tqdm.tqdm(paths):
         
         with open(cube_path, 'rb') as f:
-            #print(cube_path)
             data = pickle.load(f)
             time.sleep(0.005)
         input_queue.put(data)
@@ -217,8 +204,15 @@ def train_validation_test_split(path, output_dir,
                                 valid_size=0.1,
                                 parallel=False):
     """
-    Creates tfrecords for train, validation and test set.
-
+    Splits data into train, validation and test set and creates 
+    corresponging files with tfrecords.
+    
+    Args:
+        path: string to dir path with generated cubes
+        output_dir: string where to save dataset
+        train_size: float percent of dataset to be used as training set
+        valid_size: float percent of dataset to be used as validation set
+        parallel: bool if use parallel data processing
     """
 
     dirs = os.listdir(path)
@@ -266,7 +260,7 @@ def train_validation_test_split(path, output_dir,
         convert_to_tfrecords(test_set, test_path)
     
 def input_fn(filenames, properties=[], train=True, num_epochs=1, batch_size=16, buffer_size=1000):
-    """ Create tensorflow dataset which has functionality for reading and
+    """ Create tensorflow dataset iterator which has functionality for reading and
         shuffling the data from tfrecods files.
         Args:
             filenames: an array or string with filename/s
@@ -280,30 +274,19 @@ def input_fn(filenames, properties=[], train=True, num_epochs=1, batch_size=16, 
     parse = partial(parse_fn, properties=properties)
     dataset = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=10).prefetch(tf.data.experimental.AUTOTUNE)
     dataset = dataset.map(map_func=parse, num_parallel_calls=12)
-
     if train:
         dataset = dataset.shuffle(buffer_size=buffer_size)
         dataset = dataset.map(map_func=train_preprocess, num_parallel_calls=12)
-
     dataset = dataset.repeat(num_epochs)
-    dataset = dataset.batch(batch_size)
-    
-    #dataset = dataset.cache()
-    
-   # iterato = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
-    #batch_density = iterator.get_next()
-
+    dataset = dataset.batch(batch_size)    
     return dataset
 
 
 if __name__ == '__main__':
     pass
-    #with open('D:\\qm9\\080684\\output.pkl', 'rb') as df:
-        #data = pickle.load(df)
-
-    train_validation_test_split('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/qm9_cubes',
-                                '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek',
-                                train_size=0.9, valid_size=0.1, parallel=True)
+    #train_validation_test_split('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/qm9_cubes',
+    #                            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek',
+    #                            train_size=0.9, valid_size=0.1, parallel=True)
     #a = input_fn('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/train.tfrecords', properties=[ 'fp'])
   #  i = iter(a)
 #    #d, n, s = i.__next__() 
