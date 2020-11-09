@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+One of the initial attempts to generate electron density. 
 Created on Wed Apr  8 01:24:26 2020
 
-@author: jmg
+@author: Jaroslaw Granda
 """
 import os 
 import pickle

@@ -6,8 +6,6 @@ def swish(x):
     """
     return x * tf.sigmoid(x)
 
-
-
 def transorm_ed(density):
     """Transform electron density"""
     density = density + 1e-4

@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Oct  8 19:10:52 2020
+Created on Thu Oct  8 19:10:52 2020. Script used to calcuate Frechet inception
+distance between real and generated electron densities.
 
-@author: group
+@author: Jaroslaw Granda
 """
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep 23 12:29:11 2020
 
-@author: group
-"""
 
 
 import os
@@ -63,7 +59,7 @@ checkpoint.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/ince
 
 
 scores = []
-
+# iterate through saved checpoints during GAN training
 for ckpt in range(1, 190, 10):
     
     
@@ -74,7 +70,7 @@ for ckpt in range(1, 190, 10):
     gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_4/dis.ckpt-{}'.format(ckpt),
             '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_4/gen.ckpt-{}'.format(ckpt))
 
-
+    # fake and real activations
     f_a = []
     r_a = []
     
@@ -96,7 +92,7 @@ for ckpt in range(1, 190, 10):
         fake_activations = fake_activations.numpy()
         f_a.extend(fake_activations)
         
-    
+    # calculation of Frechet inception disctance
     u1 = np.mean(f_a, axis=0)
     u2 = np.mean(r_a, axis=0)
     diff = u1 - u2
@@ -121,33 +117,3 @@ for ckpt in range(1, 190, 10):
 plt.plot(scores)
 print(scores)
 
-
-# entropies = []
-# incpetion_scores = []
-
-
-# for ckpt in tqdm.tqdm(range(10, 130, 10)):
-    
-#     try:
-#         gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/dis.ckpt-{}'.format(ckpt),
-#             '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_3/gen.ckpt-{}'.format(ckpt))
-#     except:
-#         continue
-#     samples = gan.sample_model(num_samples=10000)
-    
-    
-#     dataset = tf.data.Dataset.from_tensor_slices(samples)
-#     #dataset = dataset.map(transorm_back)
-#     dataset = dataset.batch(20)
-#     dataset = dataset.repeat(1)
-    
-#     dataset_iterator = iter(dataset)
-#     proba, marginal, inception, ent = calculate_inception_score(dataset_iterator)
-#     print('Entropy', ent)
-        
-#     entropies.append(ent)
-#     incpetion_scores.append(inception)
-
-# print(entropies)
-# print('----------------------------------')
-# print(incpetion_scores)

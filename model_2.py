@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Apr  8 01:24:26 2020
+Created on Wed Apr  8 01:24:26 2020. Legacy old model.
 
 @author: jmg
 """

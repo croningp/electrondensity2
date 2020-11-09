@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri May  8 19:58:53 2020
+Created on Fri May  8 19:58:53 2020. Model to classify the number of nuclei in
+the molecules. Used to calculate the inception score and Frechet inception distance.
 
 @author: jmg
 """

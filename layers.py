@@ -210,21 +210,33 @@ class ResBlockDown2D(Model):
     
     
 class ConvSelfAttn3D(Model):
+    """Convodultional self-attention from https://arxiv.org/abs/1805.08318
+    expanded to three dimensions.
+    """
     def __init__(self,
                  attn_dim,
                  output_dim,
                  kernel_initializer=tf.keras.initializers.Orthogonal()):
+        """
+            Args:
+                attn_dim: int for the attention dimension
+                output_dim: feature_size for the attention transformed inputs
+                kernel_initializer: str or initializer for the Conv3D used in attention
+        """
         super(ConvSelfAttn3D, self).__init__()
         self.f_conv = Conv3D(attn_dim, 1,  kernel_initializer=kernel_initializer)
         self.g_conv = Conv3D(attn_dim, 1,  kernel_initializer=kernel_initializer)
         self.h_conv = Conv3D(attn_dim, 1,  kernel_initializer=kernel_initializer)
         self.v_conv = Conv3D(output_dim, 1,  kernel_initializer=kernel_initializer)
-        
         self.scale = tf.Variable(0.0)
     
     def flatten(self, inputs):
-        #tf.print(inputs.name)
-    
+        """Inner flattens the inputs
+        Args:
+            inputs: tensor of shape [batch_size, cube_dim, cube_dim, cube_dim, hidden_dim]
+            output: tensor of [batch_size, cube_dim*cube_dim*cube_dim, hidden_dim]
+        
+        """
         inputs_shape = inputs.get_shape()
         batch_size = tf.TensorShape([inputs_shape[0]])
         hidden_dims = tf.TensorShape(
@@ -232,10 +244,18 @@ class ConvSelfAttn3D(Model):
         last_dim = tf.TensorShape([inputs_shape[-1]])
         new_shape = batch_size + hidden_dims + last_dim
         new_shape = [inputs_shape[0], tf.reduce_prod(inputs_shape[1:-1]), inputs_shape[-1]]
-        return tf.reshape(inputs, new_shape)
+        flat = tf.reshape(inputs, new_shape)
+        return flat
     
     
     def call(self, input):
+        """Performs the attention
+        Args:
+            input: tensor of shape [batch_size, cube_dim, cube_dim, cube_dim, hidden_dim]
+        Returns:
+            output: tensor of shape [batch_size, cube_dim, cube_dim, cube_dim, output_dim]
+            
+        """
         fx = self.f_conv(input)
         gx = self.g_conv(input)
         hx = self.h_conv(input)
@@ -299,7 +319,7 @@ class ConvSelfAttn2D(Model):
     
     
 
-
+# initial generator and discriminators
 class Generator_v1(Model):
     def __init__(self, hidden_dim=1024):
         
@@ -373,13 +393,7 @@ class Discriminator_v1(Model):
         return output
 
 
-
-
-
-
-
-
-    
+# current generator and discriminator
 class Generator_v3(Model):
     def __init__(self,
                  use_batchnorm,
@@ -485,171 +499,3 @@ class Discriminator_v3(Model):
         x = self.activation(x)
         output = self.linear(x)
         return output
-
-    
-class TemporalDiscriminator(Model):
-    def __init__(self, hidden_dim=1024, activation_fn='relu', use_attn=True,
-                  kernel_initializer=tf.keras.initializers.Orthogonal()):
-        
-        super(TemporalDiscriminator, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.use_attn = use_attn
-        self.resblok_1 = ResBlockDown3D(16, activation_fn=activation_fn, kernel_initializer=kernel_initializer)
-        self.resblok_2 = ResBlockDown3D(32, activation_fn=activation_fn, kernel_initializer=kernel_initializer)
-        self.resblok_3 = ResBlockDown3D(64, activation_fn=activation_fn, kernel_initializer=kernel_initializer)
-        self.resblok_4 = ResBlockDown3D(128, activation_fn=activation_fn, kernel_initializer=kernel_initializer)
-        
-        
-        self.avg_pool_1 = AvgPool3D(2)
-        
-        self.activation = Activation(activation_fn)
-        self.dense = Dense(256, activation=activation_fn,  kernel_initializer=kernel_initializer)
-        if self.use_attn:
-            self.attn = ConvSelfAttn3D(attn_dim=32, output_dim=32)
-        self.flatten = Flatten()
-        self.linear = Dense(1, kernel_initializer=kernel_initializer)
-
-    def call(self, inputs):
-        x = self.avg_pool_1(inputs)
-        x = self.resblok_1(x)
-        x = self.resblok_2(x)
-        if self.use_attn:
-            x = self.attn(x)
-        x = self.resblok_3(x)
-        x = self.resblok_4(x)
-        x = self.flatten(x)
-        x = self.activation(x)
-        output = self.linear(x)
-        return output
-    
-class SpatialDiscriminator(Model):
-    def __init__(self, kernel_initializer='glorot_uniform', activation_fn='relu'):
-        super(SpatialDiscriminator, self).__init__()
-        
-        
-        self.resblock_1 = ResBlockDown2D(4, kernel_initializer=kernel_initializer, activation_fn=activation_fn)
-        self.resblock_2 = ResBlockDown2D(8, kernel_initializer=kernel_initializer, activation_fn=activation_fn)
-        self.resblock_3 = ResBlockDown2D(16, kernel_initializer=kernel_initializer, activation_fn=activation_fn)
-        self.resblock_4 = ResBlockDown2D(32, kernel_initializer=kernel_initializer, activation_fn=activation_fn)
-        self.flatten = Flatten()
-        self.attn = ConvSelfAttn2D(8, 8, kernel_initializer=kernel_initializer)
-        self.linear = Dense(1)
-        
-        
-    
-    def call(self, inputs):
-        batch_size = tf.shape(inputs)[0]
-        x = tf.reshape(inputs, [batch_size* 64, 64,64, 1])
-        
-        x = self.resblock_1(x)    
-        x = self.resblock_2(x)
-        x = self.attn(x)
-        x = self.resblock_3(x)
-        x = self.resblock_4(x)
-        x = self.flatten(x)
-        x = self.linear(x)
-        x = tf.reshape(x, [batch_size, 64])
-        x = tf.reduce_mean(x, axis=-1)
-        return x
-    
-
-    
-    
-    
-class ConvGRUCell(Layer):
-    
-    def __init__(self, hidden_dim, kernel_size=3, depth=8, activation='relu'):
-        
-        super(ConvGRUCell, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.kernel_size =  kernel_size
-        self.depth = depth
-        #self.kernel_initializer = kernel_initializer
-        self.activation =  Activation(activation)
-        self.r_gate_conv = Conv2D(filters=self.depth, kernel_size=self.kernel_size, padding='same')
-        self.z_gate_conv = Conv2D(filters=self.depth, kernel_size=self.kernel_size, padding='same')
-        self.c_conv = Conv2D(filters=self.depth, kernel_size=self.kernel_size, padding='same')
-    
-    def call(self, input, state):
-        
-        inputs = tf.concat([input, state], axis=-1)
-        r_t = tf.keras.activations.sigmoid(self.r_gate_conv(inputs))
-        z_t = tf.keras.activations.sigmoid(self.z_gate_conv(inputs))
-        ht_ = state * r_t
-        inputs_2 = tf.concat([ht_, input], axis=-1)
-        ht_c = self.activation(self.c_conv(inputs_2))
-        ht_plus = z_t * ht_c + (1.0 - z_t) * state
-        return ht_plus, ht_plus
-        
-    def get_initial_state(self, inputs=None, batch_size=None, dtype=tf.float32):
-        if inputs is not None:
-            batch_size = tf.shape(inputs)[0]
-        initial_state = tf.zeros([batch_size, self.hidden_dim, self.hidden_dim, self.depth],   )
-        return initial_state
-    
-    @property
-    def output_size(self):
-        return tf.TensorShape([self.hidden_dim,self.hidden_dim,self.depth])
-    
-    @property
-    def state_size(self):
-        return tf.TensorShape([self.hidden_dim,self.hidden_dim,self.depth])
-        
-    
-class Generator_v4(Model):
-    def __init__(self,                 
-                 hidden_dim=16,
-                 activation_fn='relu',
-                 use_batchnorm=False,
-                 z_dim=100,
-                 depth=8,
-                 kernel_initializer=tf.keras.initializers.Orthogonal()):
-        
-        super(Generator_v4, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.z_dim = z_dim
-        self.depth = depth
-        self.use_batchnorm = use_batchnorm
-
-        self.resblockup_1 = ResBlockUp2D(4, use_batchnorm=use_batchnorm,
-                                         activation_fn=activation_fn, 
-                                         kernel_initializer=kernel_initializer)
-        self.resblockup_2 = ResBlockUp2D(1, use_batchnorm=use_batchnorm,
-                                         activation_fn=activation_fn,
-                                         kernel_initializer=kernel_initializer)
-
-
-    
-        self.conv_gru = ConvGRUCell(self.hidden_dim)
-        self.dense = Dense(self.hidden_dim * self.hidden_dim, activation=activation_fn,
-                           kernel_initializer=kernel_initializer)
-        #self.attn = ConvSelfAttn3D(attn_dim=32, output_dim=128)
-        
-        
-        
-    def unfold_model(self, input, batch_size):
-        
-        outputs = []
-        gru_state = self.conv_gru.get_initial_state(batch_size=batch_size)
-        for i in range(64):
-            output, gru_state = self.conv_gru(input, gru_state)
-            outputs.append(output)
-            
-        return tf.stack(outputs, axis=1)
-            
-
-
-    def call(self, batch_size, training):
-        
-        z = tf.random.uniform([batch_size, self.z_dim], minval=-1.0, maxval=1.0)
-        x = self.dense(z)
-        z_input = tf.reshape(x, [batch_size, self.hidden_dim, self.hidden_dim, 1])
-        
-        output = self.unfold_model(z_input, batch_size)
-        output_reshaped = tf.reshape(output, [batch_size*64, self.hidden_dim,self.hidden_dim,self.depth])
-        output = self.resblockup_1(output_reshaped)
-        output = self.resblockup_2(output)
-        output = tf.reshape(output, [batch_size, 64, 64,64,1])
-        return output
-    
-    

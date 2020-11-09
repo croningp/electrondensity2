@@ -2,7 +2,10 @@
 """
 Created on Wed Sep 23 12:29:11 2020
 
-@author: group
+
+Calculate inception scores for training checkpoints.
+
+@author: jmg
 """
 
 
@@ -23,6 +26,7 @@ from electrondensity2.utils import  transorm_ed, transorm_back_ed
 from electrondensity2.gan import GP_WGAN, GANTrainer
 
 from inception import calculate_inception_score
+
 
 generator_config = {'use_batchnorm':True, 'activation_fn':'elu',
                     'kernel_initializer':'glorot_uniform',

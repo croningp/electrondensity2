@@ -9,7 +9,7 @@ import pickle
 import numpy as np
 import tqdm
 import time
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import tensorflow as tf
 
 os.chdir('/home/jarek/electrondensity2')
@@ -19,20 +19,6 @@ from layers import ResBlockDown3D, ResBlockUp3D, ConvSelfAttn3D, Generator_v3, D
 from layers import SpatialDiscriminator, TemporalDiscriminator
 from utils import  transorm_ed, transorm_back_ed
 from gan import GP_WGAN, GANTrainer
-
-
-
-
-
-
-
-#generator_config = {}
-#discrimator_config = {}
-#                         discrimator_config)
-
-
-#gan = LS_GAN(Generator_v3, Discriminator_v3, generator_config, discrimator_config,
-        #      distributed_training=False, d_learning_rate=1e-5)
 
 
 
@@ -49,8 +35,8 @@ gan = GP_WGAN(Generator_v3, Discriminator_v3, generator_config, discrimator_conf
               distributed_training=True)
 
 
-gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_4/dis.ckpt-180',
-            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/model_4/gen.ckpt-190')
+gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/model_4/dis.ckpt-180',
+            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/model_4/gen.ckpt-190')
 
 
 #a = gan.sample_model('/home/jarek/samples.pkl', num_samples=100)

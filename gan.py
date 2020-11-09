@@ -76,13 +76,23 @@ class GAN_Base():
         
 
     def discriminator_step_fn(self, *args):
+        """
+        Abstract class method to be implemented
+        """
         pass
     
     def generator_step_fn(self, *args):
+        """
+        Abstract class method to be implemented
+        """
         pass
     
     
     def restore(self, dis_path, gen_path):
+        """
+        Restores the model from checkpoint.
+        """
+
         if hasattr(self, 'strategy'):
             with self.strategy.scope():
                 self.g_checkpoint.restore(gen_path)
@@ -93,6 +103,12 @@ class GAN_Base():
     
     @tf.function
     def discrimator_train_step(self, *args, **kwargs):
+        """
+        Runs a single training step of discriminator. If using distributed strategy 
+        it will run in parallel on multiple gpus.
+        
+        """
+
         if hasattr(self, 'strategy'):
             per_replica_losses = self.strategy.experimental_run_v2(self.discriminator_step_fn,
                                                                    args=args,
@@ -105,6 +121,11 @@ class GAN_Base():
             
     @tf.function
     def generator_train_step(self, *args, **kwargs):
+         """
+        Runs a single training step of generator. If using distributed strategy 
+        it will run in parallel on multiple gpus.
+        
+        """
         if hasattr(self, 'strategy'):
             per_replica_losses = self.strategy.experimental_run_v2(self.generator_step_fn,
                                                                    args=args, kwargs=kwargs)
@@ -115,6 +136,16 @@ class GAN_Base():
     
     
     def sample_model(self, path=None, num_samples=1000, batch_size=32):
+        """
+        Generates a given number of electron densities from the model and 
+        saves them to disk if path is give,
+        
+        Args:
+            path: str to path where to save the results
+            num_samples: int how many cubes to generate
+            batch_size: int batch size to place on gpu
+            
+        """
         print('Electron density saved to {}'.format(path))
         num_iter = num_samples // batch_size + 1
         generated_cubes = []
@@ -135,7 +166,15 @@ class GAN_Base():
     
     
     def explore_latent_space(self, num_steps=10, batch_size=32):
+        """
+        Interpolates between electron densities in the latent space.
+        This works by sampling two random z vectors and moving between them 
+        in small steps and sampling electron denisty for each step.
+        Args:
+            num_steps: int how many steps to taka
+            batch_size: int of batch_size on gpu
         
+        """
         noise_z1 = self.generator.sample_z(batch_size)
         noise_z2 = self.generator.sample_z(batch_size)
         
@@ -152,6 +191,16 @@ class GAN_Base():
                 
                 
     def explore_latent_space_v2(self, num_steps=10, batch_size=32):
+        """
+        Interpolates between three electron densities in the latent space.
+        This works by sampling three random z vectors and moving between them 
+        in small steps and sampling electron denisty for each step.
+        Args:
+            num_steps: int how many steps to taka
+            batch_size: int of batch_size on gpu
+        
+        """
+        
         
         noise_z1 = self.generator.sample_z(batch_size)
         noise_z2 = self.generator.sample_z(batch_size)
@@ -179,15 +228,27 @@ class GAN_Base():
             
     
 class GP_WGAN(GAN_Base):
+    """
+        Wasserstein gradient penalty GAN from Improved Training of Wasserstein GANs
+        https://arxiv.org/pdf/1704.00028.pdf
+    """
+        
     def __init__(self, *args, **kwargs):
         super(GP_WGAN, self).__init__(*args, **kwargs)
         
     def discriminator_step_fn(self, density, p_lambda=10):
+        """
+        Single step for discriminator training.
+        Args:
+            density: tensor with real electron densities with shape
+                     [batch_size, 64, 64, 64, 1]
+            penalty: float for wasserstein loss penalty
+        Returns: loss: tensor with training loss
+        """
         density = tf.tanh(density)
         density = transorm_ed(density)
         
         with tf.GradientTape() as tape:
-        #loss = 0.5*tf.square(discriminator(density) - 1.0) + 0.5* tf.square(discriminator(generator(batch_size))+1)
             batch_size = tf.shape(density)[0]
             generated = self.generator(batch_size, training=False)
             with tf.GradientTape() as tape_2:
@@ -206,6 +267,14 @@ class GP_WGAN(GAN_Base):
         return loss
     
     def generator_step_fn(self, batch_size):
+        """
+        Single step for generator training.
+        Args:
+            batch_size: int with batch size to place on gpu(s)
+        Returns: 
+            loss: tensor with loss
+        """
+        
         with tf.GradientTape() as tape:
             loss = self.discriminator(self.generator(batch_size, training=True))
             loss =  -tf.reduce_mean(loss)
@@ -216,15 +285,29 @@ class GP_WGAN(GAN_Base):
     
 
 class LS_GAN(GAN_Base):
+    """
+    Least square GAN from Least Squares Generative Adversarial Networks
+    
+    https://arxiv.org/abs/1611.04076
+    """
+    
     def __init__(self, *args, **kwargs):
         super(LS_GAN, self).__init__(*args, **kwargs)
         
-    def discriminator_step_fn(self, density, p_lambda=10):
+    def discriminator_step_fn(self, density):
+        """
+        Single step for discriminator training.
+        Args:
+            density: tensor with real electron densities with shape
+                     [batch_size, 64, 64, 64, 1]
+        Returns:
+            loss: tensor with training loss
+        """
+        
         density = tf.tanh(density)
         density = transorm_ed(density)
         
         with tf.GradientTape() as tape:
-        #loss = 0.5*tf.square(discriminator(density) - 1.0) + 0.5* tf.square(discriminator(generator(batch_size))+1)
             batch_size = tf.shape(density)[0]
             generated = self.generator(batch_size, training=False)
             loss = 0.5*tf.square(self.discriminator(density) - 1.0) + 0.5*tf.square(self.discriminator(generated))
@@ -235,6 +318,13 @@ class LS_GAN(GAN_Base):
         return loss
     
     def generator_step_fn(self, batch_size):
+        """
+        Single step for generator training.
+        Args:
+            batch_size: int with batch size to place on gpu(s)
+        Returns: 
+            loss: tensor with loss
+        """
         with tf.GradientTape() as tape:
             loss = 0.5* tf.square(self.discriminator(self.generator(batch_size, training=True))-1.0)
             loss =  tf.reduce_mean(loss)
@@ -242,56 +332,13 @@ class LS_GAN(GAN_Base):
         self.g_optimizer.apply_gradients(zip(gradients, self.generator.trainable_variables))
         return loss
     
-
-    
-class DoubleDiscriminatorGAN(GAN_Base):
-    def __init__(self, spatial_discriminator, *args,  **kwargs):
-        super(DoubleDiscriminatorGAN, self).__init__(*args, **kwargs)
-        self.spatial_discriminator = spatial_discriminator(kernel_initializer='orthogonal')
-        
-    def discriminator_step_fn(self, density, p_lambda=10):
-        density = tf.tanh(density)
-        density = transorm_ed(density)
-        
-        with tf.GradientTape() as tape:
-        #loss = 0.5*tf.square(discriminator(density) - 1.0) + 0.5* tf.square(discriminator(generator(batch_size))+1)
-            batch_size = tf.shape(density)[0]
-            generated = self.generator(batch_size, training=False)
-            with tf.GradientTape() as tape_2:
-                epsilon = tf.random.uniform(density.shape, minval=0.0, maxval=1.0)
-                x_hat = density * epsilon + (1 - epsilon)* generated
-                tape_2.watch(x_hat)
-                d_hat = self.discriminator(x_hat) + 0.1 * self.spatial_discriminator(x_hat)
-        
-            w_hat_gradient = tape_2.gradient(d_hat, x_hat)
-            penalty = p_lambda * tf.square(tf.norm(w_hat_gradient) - 1)
-            loss = tf.reduce_mean(self.discriminator(density)) - tf.reduce_mean(self.discriminator(generated)) - penalty 
-            loss = loss + 0.1 * tf.reduce_mean(self.spatial_discriminator(density)) - 0.1* tf.reduce_mean(self.spatial_discriminator(generated))
-        
-        gradients = tape.gradient(loss,
-                                  self.discriminator.trainable_variables+self.spatial_discriminator.trainable_variables)
-        gradients = [-g for g in gradients]
-        self.d_optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
-        return loss
-    
-    def generator_step_fn(self, batch_size):
-        with tf.GradientTape() as tape:
-            generated_ed = self.generator(batch_size, training=True)
-            loss = self.discriminator(generated_ed) + 0.1*self.spatial_discriminator(generated_ed)
-            loss =  -tf.reduce_mean(loss)
-        gradients = tape.gradient(loss, self.generator.trainable_variables)
-        self.g_optimizer.apply_gradients(zip(gradients, self.generator.trainable_variables))
-        return loss
-    
-
-    
-    
-    
-    
+ 
     
 
 class GANTrainer():
-    
+    """
+        Class for training and mangaing GANs models.
+    """
     
     def __init__(self,
                  gan,
@@ -304,6 +351,20 @@ class GANTrainer():
                  save_model_every_steps=1000,
                  path='/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek'
                  ):
+        
+        """Initilizer the class.
+            Args:
+                gan: gan model which inherits fron GAN_Base
+                batch_size: int the batch size
+                num_epochs: int number of training epochs
+                num_training_steps: number of training steps
+                steps_train_generator: int for how many times train generator per training step
+                steps_train_discriminator: int for how many times train discriminator per training step
+                write_summary: bool if write training tf summuries
+                save_model: int how many training steps save model
+                path: str to main project folder
+        """
+        
         
         self.gan = gan
         self.save_model_every_steps = save_model_every_steps
@@ -348,11 +409,14 @@ class GANTrainer():
         
         if write_summary:
             time_stamp = str(int(time.time()))
-            
             path = os.path.join(self.path, 'logs', time_stamp, 'train')
             self.summary_writer = tf.summary.create_file_writer(path)
         
     def train_discriminator(self):
+        """
+        Performs steps_train_discriminator number of discriminator trainning steps
+        
+        """
         for i in range(self.steps_train_discriminator):
             batch_density = next(self.density_generator)[0]
             self.d_loss = self.gan.discrimator_train_step(batch_density)
@@ -361,12 +425,19 @@ class GANTrainer():
     
     
     def train_generator(self):
+        """
+        Performs steps_train_generator number of generator trainning steps
+        
+        """
         for i in range(self.steps_train_generator):
             self.g_loss = self.gan.generator_train_step(self.batch_size)
             self.g_losses.append(self.g_loss)
             self.g_running_avg = 0.99 * self.g_running_avg + 0.01 * self.g_loss
     
     def write_summary(self):
+        """
+            Writes tf summary for one traing step step
+        """
         if not hasattr(self, 'summary_writer'):
             return
         with self.summary_writer.as_default():
@@ -375,11 +446,9 @@ class GANTrainer():
             self.summary_writer.flush()
             
     def print_stats(self):
-        print('\nD loss {}, G loss {}'.format(np.mean(self.d_losses), np.mean(self.g_losses)))
-        print('Run avgs D loss {}, G loss {}\n'.format(self.d_running_avg, self.g_running_avg,))
-        self.g_losses = []
-        self.d_losses = []
-        
+        """
+        Prints training stats.
+        """
     def save_model(self):
             model_path = os.path.join(self.path, 'models')
             gen_path = os.path.join(model_path, 'gen.ckpt')
@@ -390,7 +459,10 @@ class GANTrainer():
             print('Discriminator saved to', dis_path)
             
     def save_ed(self):
+        """
+        Generates and saves elctron density in current dir.
         
+        """
         curr_dir = os.getcwd()
         ed_path = os.path.join(curr_dir, 'generated_ed.pkl')
         print('Electron density saved to {}'.format(ed_path))
@@ -400,6 +472,9 @@ class GANTrainer():
                 pickle.dump(generated_cubes.numpy(), pfile)
         
     def train(self):
+        """
+        GAN main training loop.
+        """
         if self.gan.distributed_training==True:
             with self.gan.strategy.scope() as s:
                 for i in tqdm.tqdm(range(self.num_training_steps)):
