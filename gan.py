@@ -29,7 +29,7 @@ from utils import  transorm_ed, transorm_back_ed
 
 
 class GAN_Base():
-    
+    """Abstract class defining functionalities common for all GANs"""
     def __init__(self, 
                  generator,
                  discriminator,
@@ -41,6 +41,11 @@ class GAN_Base():
                  d_optimizer=tf.keras.optimizers.RMSprop,
                  distributed_training=True
                  ):
+        
+        
+        """
+        
+        """
     
         super(GAN_Base, self).__init__()
     
@@ -77,13 +82,13 @@ class GAN_Base():
 
     def discriminator_step_fn(self, *args):
         """
-        Abstract class method to be implemented
+        Abstract class method to implement discriminator training step
         """
         pass
     
     def generator_step_fn(self, *args):
         """
-        Abstract class method to be implemented
+        Abstract class method to implement generetor training step
         """
         pass
     
@@ -138,7 +143,7 @@ class GAN_Base():
     def sample_model(self, path=None, num_samples=1000, batch_size=32):
         """
         Generates a given number of electron densities from the model and 
-        saves them to disk if path is give,
+        saves them to disk if path is given.
         
         Args:
             path: str to path where to save the results
@@ -352,7 +357,7 @@ class GANTrainer():
                  path='/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek'
                  ):
         
-        """Initilizer the class.
+        """
             Args:
                 gan: gan model which inherits fron GAN_Base
                 batch_size: int the batch size

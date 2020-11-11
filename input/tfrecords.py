@@ -287,7 +287,7 @@ if __name__ == '__main__':
     #train_validation_test_split('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/qm9_cubes',
     #                            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek',
     #                            train_size=0.9, valid_size=0.1, parallel=True)
-    #a = input_fn('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a/jarek/train.tfrecords', properties=[ 'fp'])
+    a = input_fn('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/train.tfrecords')
   #  i = iter(a)
 #    #d, n, s = i.__next__() 
 #=======
