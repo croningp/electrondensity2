@@ -26,7 +26,7 @@ grid.init_grid()
 
 with open(args.file, 'rb') as pfile:
     cubes = pickle.load(pfile)
-print('input shape')
+print('input shape:')
 print(cubes.shape) 
     
 if cubes.shape[-1] == 1:
@@ -38,6 +38,7 @@ else:
     for i in range(5):
         output.view_with_mayavi(grid.x, grid.y, grid.z, cubes[i, :, :, :, 1])
 
+#print some stats
 print('max', np.max(cubes[0]))
 print('mean', np.mean(cubes[0]))
 print('max', np.max(cubes[1]))
