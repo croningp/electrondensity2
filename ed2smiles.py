@@ -13,7 +13,7 @@ import numpy as np
 import tqdm
 import time
 import rdkit
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, AvgPool2D, LSTMCell, Dense, RNN
 from tensorflow.keras.layers import Conv2DTranspose, MaxPool2D, UpSampling2D, Layer, RNN, Bidirectional
@@ -353,7 +353,7 @@ class E2S(Layer):
         
     def sample(self, batch_size, densities):
         """
-        Sample the model to generate smiles strings.
+        Samples the model to generate smiles strings.
         For each time step the model generates the probabilty distribution
         of tokens which is then sampled using categorical distribution yielding
         single token which is fed back at the next time step after embedding. 
@@ -475,13 +475,15 @@ def get_unique_smiles(sm_list):
     return uniqe_smiles
 
 
-def translate_from_single_ed(density, batch_size=32):
+def translate_from_single_ed(density, model, tokenizer, batch_size=32):
     """
     Generates a uniqe smiles for a single electron with shape 
          and draws to image.
     Args:
         density: a tensor with shape [64,64,64,1]
         batch_size: int with the batch size to place on GPU.
+        model: trained translation model
+        tokenizer: an instance of tokenizer
     Return:
         sampled_smiles: list of str with uniqe smiles
         
@@ -493,21 +495,28 @@ def translate_from_single_ed(density, batch_size=32):
     sampled_smiles = tokenizer.batch_decode_smiles(list(sampled_smiles.numpy()))
     
     unique_smiles = get_unique_smiles(sampled_smiles)
-    #draw_mol_grid(unique_smiles)
+    draw_mol_grid(unique_smiles)
     return sampled_smiles
 
 
     
 
-def generate_from_file(path, num_smiles=32):
+def generate_from_file(path, index, model, tokenizer, num_smiles=32):
     """
     Load pickled data from disk with ed cubes and 
     do translation for one of the cubes.
+    Args:
+        path: str with path to file with pickled eds.
+        index: int with index which cube to translate
+        model: trained translation model
+        tokenizer: an instance of tokenizer
+        num_smiles: int
+        
     """
     with open(path, 'rb') as pfile:
         cubes = pickle.load(pfile)    
     cubes = cubes.astype(np.float32)
-    smiles = translate_from_single_ed(cubes[1], batch_size=num_smiles)
+    smiles = translate_from_single_ed(cubes[index], model, tokenizer, batch_size=num_smiles)
     return smiles
 
 
@@ -517,21 +526,12 @@ def analysis():
     
     original, sampled = benchmark_model()
     sampled_mols = [rdkit.Chem.MolFromSmiles(s) for s in sampled]
-    
     valid_sampled_mols= [m for m in sampled_mols if m is not None]
     original_mols = [rdkit.Chem.MolFromSmiles(s) for s in original]
-    
     print('Percent valid smiles', len(valid_sampled_mols)/len(sampled_mols))
     print('Sampled ', len(sampled_mols), 'Valid ', len(valid_sampled_mols))
-    
-    
-    #text_similarites = [textdistance.hamming.normalized_similarity(*mols) for mols in zip(sampled, original)]
-    
-    
     similarities = [TanimotoSimilarity(*mols) for mols in zip(sampled, original)]
     similarities = [s for s in similarities if s is not None]
-    
-    
     random_mols = [random.sample(original, 2) for i in range(len(sampled))]
     random_similarity = [TanimotoSimilarity(*mols) for mols in random_mols]
     plt.hist(similarities, bins=50, alpha=0.75, color='r')
@@ -599,7 +599,7 @@ if __name__ == '__main__':
     model = E2S(num_outputs=33, lstm_dim=512)
     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
     
-    tokenizer = Tokenizer('/home/jarek/electrondensity2/data')
+    tokenizer = Tokenizer('/home/jarek/electrondensity2/data/ed2smiles_tokenizer.json')
     # restore the model
     checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
     checkpoint.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/ed2smiles/ed2smiles.ckpt-72')
@@ -610,38 +610,38 @@ if __name__ == '__main__':
     
     
     
-# # main training loop
-# losses = []
-# accs = []
-# loss_running_avg = 0.0
-# acc_running_avg = 0.0
-
-# for i in tqdm.tqdm(range(1, 100001)):
-#     densities, _, smiles = batch_density.__next__()
-#     #densities = tf.tanh(densities)
-#     densities = transorm_ed(densities)
-#     #loss, acc, pred, targ = train_step(densities, smiles)
-#     #loss_running_avg = 0.99* loss_running_avg + 0.01 * loss.numpy()
-#     #acc_running_avg =  0.99* acc_running_avg + 0.01 * acc.numpy()
-#     #losses.append(loss.numpy())
-#     #accs.append(acc.numpy())
-#     #if i % 20 == 0:
-#     #   print('\nAverage loss {} Avg accs {} '.format(np.mean(losses), np.mean(accs)))
-#       #  print('Average running loss {} Acc {} '.format(loss_running_avg, acc_running_avg))
-#       # losses = []
-#         #accs = []
-#     if i % 10 == 0:
-#         samples = tokenizer.batch_decode_smiles(list(model.sample(32, densities).numpy())[:10])
-#         print('\n', samples)
-#         #pred_ = np.argmax(pred, axis=-1)[:10]
-#         #targ_ = np.argmax(targ, axis=-1)[:10]
-#         #print(tokenizer.batch_decode_smiles(pred_))
-#         print('\n', tokenizer.batch_decode_smiles(smiles.numpy())[:10])
-#         #print('\n', tokenizer.batch_decode_smiles(targ_)[:10])
+    # # main training loop
+    # losses = []
+    # accs = []
+    # loss_running_avg = 0.0
+    # acc_running_avg = 0.0
     
-#     if i % 3000 == 0:
-#         path = checkpoint.save('models\\ed2smiles.ckpt')
-#         print('Model saved to', path)
+    # for i in tqdm.tqdm(range(1, 100001)):
+    #     densities, _, smiles = batch_density.__next__()
+    #     #densities = tf.tanh(densities)
+    #     densities = transorm_ed(densities)
+    #     #loss, acc, pred, targ = train_step(densities, smiles)
+    #     #loss_running_avg = 0.99* loss_running_avg + 0.01 * loss.numpy()
+    #     #acc_running_avg =  0.99* acc_running_avg + 0.01 * acc.numpy()
+    #     #losses.append(loss.numpy())
+    #     #accs.append(acc.numpy())
+    #     #if i % 20 == 0:
+    #     #   print('\nAverage loss {} Avg accs {} '.format(np.mean(losses), np.mean(accs)))
+    #       #  print('Average running loss {} Acc {} '.format(loss_running_avg, acc_running_avg))
+    #       # losses = []
+    #         #accs = []
+    #     if i % 10 == 0:
+    #         samples = tokenizer.batch_decode_smiles(list(model.sample(32, densities).numpy())[:10])
+    #         print('\n', samples)
+    #         #pred_ = np.argmax(pred, axis=-1)[:10]
+    #         #targ_ = np.argmax(targ, axis=-1)[:10]
+    #         #print(tokenizer.batch_decode_smiles(pred_))
+    #         print('\n', tokenizer.batch_decode_smiles(smiles.numpy())[:10])
+    #         #print('\n', tokenizer.batch_decode_smiles(targ_)[:10])
+        
+    #     if i % 3000 == 0:
+    #         path = checkpoint.save('models\\ed2smiles.ckpt')
+    #         print('Model saved to', path)
 
 
 

@@ -200,26 +200,25 @@ class Tokenizer():
     Class handling encoding and decoding of smiles strings
     """
     
-    def __init__(self, path, initialize_from_dataset=False, dataset_path=None):
+    def __init__(self, config_path, initialize_from_dataset=False, dataset_path=None):
         """Initializer for the class, by default it will look for json with 
         its configuration in the path folder. If the config doesn't
         exist it needs to be initialized from the processed dataset.
         Args:
-            path: a path to the folder where tokenizer config file is
+            path: a path to the config file or path to save config file if
+                initialize_from_dataset=True
             initialize_from_dataset: a bool if to initialize config from the
-            datast
+            datast 
             dataset_path: a string with path to processed dataset
         """
         
-        conf_path = os.path.join(path, 'tokenizer.json')
-        
         if not initialize_from_dataset:
             
-            if not os.path.exists(conf_path):
+            if not os.path.exists(config_path):
                 raise ValueError('Please initialize tokenizer by running\
                                  initialize_from_dataset=True')
             
-            with open(conf_path, 'r') as file:
+            with open(config_path, 'r') as file:
                 config = json.load(file)
             self.num2token = config['num2token']
             self.token2num = config['token2num']
@@ -241,7 +240,7 @@ class Tokenizer():
             config['token2num'] = self.token2num
             config['max_length'] = self.max_length
             
-            with open(conf_path, 'w') as file:
+            with open(config_path, 'w') as file:
                 json.dump(config, file)
             
             

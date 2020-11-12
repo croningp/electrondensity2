@@ -16,7 +16,6 @@ os.chdir('/home/jarek/electrondensity2')
 
 from input.tfrecords import input_fn
 from layers import ResBlockDown3D, ResBlockUp3D, ConvSelfAttn3D, Generator_v3, Discriminator_v3
-from layers import SpatialDiscriminator, TemporalDiscriminator
 from utils import  transorm_ed, transorm_back_ed
 from gan import GP_WGAN, GANTrainer
 
@@ -31,21 +30,25 @@ discrimator_config = {'activation_fn':'relu', 'use_attn':False,
                      'kernel_initializer':'orthogonal'}
 
 
-gan = GP_WGAN(Generator_v3, Discriminator_v3, generator_config, discrimator_config,
-              distributed_training=True)
 
 
-gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/model_4/dis.ckpt-180',
-            '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/model_4/gen.ckpt-190')
+if __name__ == '__main__':
+
+    gan = GP_WGAN(Generator_v3, Discriminator_v3, generator_config, discrimator_config,
+                  distributed_training=True)
 
 
-#a = gan.sample_model('/home/jarek/samples.pkl', num_samples=100)
-gan.explore_latent_space_v2(num_steps=20)
+    gan.restore('/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/model_4/dis.ckpt-180',
+                '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/model_4/gen.ckpt-190')
 
-#trainer = GANTrainer(gan, num_training_steps=100000, 
-#                      steps_train_discriminator=5)
 
-#trainer.train()
+    #a = gan.sample_model('/home/jarek/samples.pkl', num_samples=100)
+    gan.explore_latent_space_v2(num_steps=20)
+
+    #trainer = GANTrainer(gan, num_training_steps=100000, 
+    #                      steps_train_discriminator=5)
+
+    #trainer.train()
     
     
 

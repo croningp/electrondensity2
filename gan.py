@@ -21,8 +21,6 @@ os.chdir('/home/jarek/electrondensity2')
 #os.chdir('Y:\\')
 
 from input.tfrecords import input_fn
-from layers import ResBlockDown3D, ResBlockUp3D, ConvSelfAttn3D, Generator_v3, Discriminator_v3
-from layers import SpatialDiscriminator, TemporalDiscriminator
 from utils import  transorm_ed, transorm_back_ed
 
 
@@ -126,7 +124,7 @@ class GAN_Base():
             
     @tf.function
     def generator_train_step(self, *args, **kwargs):
-         """
+        """
         Runs a single training step of generator. If using distributed strategy 
         it will run in parallel on multiple gpus.
         
@@ -446,14 +444,19 @@ class GANTrainer():
         if not hasattr(self, 'summary_writer'):
             return
         with self.summary_writer.as_default():
-            tf.summary.scalar('g_loss', self.g_loss, step=counter)
-            tf.summary.scalar('d_loss', self.d_loss, step=counter)
+            tf.summary.scalar('g_loss', self.g_loss, step=self.counter)
+            tf.summary.scalar('d_loss', self.d_loss, step=self.counter)
             self.summary_writer.flush()
             
     def print_stats(self):
         """
         Prints training stats.
         """
+        print('\nD loss {}, G loss {}'.format(np.mean(self.d_losses), np.mean(self.g_losses)))
+        print('Run avgs D loss {}, G loss {}\n'.format(self.d_running_avg, self.g_running_avg,))
+        self.g_losses = []
+        self.d_losses = []
+
     def save_model(self):
             model_path = os.path.join(self.path, 'models')
             gen_path = os.path.join(model_path, 'gen.ckpt')
