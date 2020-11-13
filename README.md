@@ -9,6 +9,6 @@
 run input.tfrecords.input_fn to create tfrecords reader
 
 ##Training models and doing the translation to SMILES
-In the examples folder there jupyter notebooks with this
+In the examples folder there are jupyter notebooks with this
 
 
