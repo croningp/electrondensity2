@@ -1,0 +1,11 @@
+name: electrondensity
+
+channels:
+    - rdkit
+    - conda-forge
+dependencies:
+    - python==3.6.10
+    - tqdm
+    - rdkit==2020.03.2.0
+    - matplotlib==3.1.3
+    
