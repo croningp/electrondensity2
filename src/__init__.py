@@ -2,7 +2,7 @@ import os
 import multiprocessing
 import logging
 
-CPU_COUNT = os.environ.get('CPU_COUNT', -1)
+CPU_COUNT = int(os.environ.get('CPU_COUNT', -1))
 if CPU_COUNT == -1:
 	CPU_COUNT = multiprocessing.cpu_count()
     
