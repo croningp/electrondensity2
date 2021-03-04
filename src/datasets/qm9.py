@@ -236,6 +236,7 @@ class QM9Dataset(Dataset):
         logger.info('Splitting and serializing dataset into tfrecords')
         splits = self._split_dataset()
         for key, split in zip(['train', 'valid', 'test'], splits):
+            logger.info('Creating {} set'.format(key))
             split_output_path = os.path.join(self.dir, '{}.tfrecords'.format(key))
             parellel_serialize_to_tfrecords(split, split_output_path,
                                             self.tokenizer_config_path, num_processes=CPU_COUNT)
