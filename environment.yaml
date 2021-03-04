@@ -8,6 +8,12 @@ dependencies:
     - tqdm
     - rdkit==2020.03.2.0
     - matplotlib==3.1.3
+    - tensorflow==2.2.0
     - xtb
-
-    
+    - requests
+    - Cython
+    - numpy
+    - scipy
+    - matplotlib
+    - h5py
+    - argh

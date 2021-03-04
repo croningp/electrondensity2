@@ -20,9 +20,7 @@ from src.datasets.utils import download_and_unpack
 from src.datasets.utils.xtb import prepare_xtb_input, run_xtb
 from src.datasets.utils.orbkit import electron_density_from_molden
 from src.datasets.utils.tokenizer import Tokenizer
-from src.datasets.utils.tfrecords import serialize_to_tfrecords, parellel_serialize_to_tfrecords, tfrecord_reader
-
-
+from src.datasets.utils.tfrecords import parellel_serialize_to_tfrecords, tfrecord_reader
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +79,13 @@ def read_qm9_file(path):
 
 class QM9Dataset(Dataset):
     def __init__(self, n_points: int, step_size: float):
+        """
+            Class for generating, loading and handling electron densities
+             QM9 dataset.
+            Args:
+                n_points: int electron_density will have n_points^3 voxels
+                step_size: float resolution of electron density in Bohr atomic units
+    	"""
         super(QM9Dataset, self).__init__()
         self.n_points = n_points
         self.step_size = step_size
@@ -212,7 +217,7 @@ class QM9Dataset(Dataset):
                 smiles_list.append(smiles)       
         return smiles_list
     
-    def generate_dataset(self):
+    def generate(self):
         """
         Generate QM9 electron density dataset:
             
@@ -222,9 +227,13 @@ class QM9Dataset(Dataset):
 
         """
         self.create_dataset_dirs()
-        #download_and_unpack(self.url, self.sourcedir)
-        #self._compute_electron_density()
+        logger.info('Downloading and extracting QM9 dataset')
+        download_and_unpack(self.url, self.sourcedir)
+        logger.info('Computing electron densities')
+        self._compute_electron_density()
+        logger.info('Creating dataset SMILES tokenizer')
         self._initialize_tokenizer()
+        logger.info('Splitting and serializing dataset into tfrecords')
         splits = self._split_dataset()
         for key, split in zip(['train', 'valid', 'test'], splits):
             split_output_path = os.path.join(self.dir, '{}.tfrecords'.format(key))
@@ -260,7 +269,7 @@ class QM9Dataset(Dataset):
 
 if __name__ == '__main__':
     d = QM9Dataset(n_points=64, step_size=0.5)
-    #d.generate_dataset()
+    d.generate_dataset()
 
         
         

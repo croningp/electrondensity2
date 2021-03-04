@@ -3,16 +3,12 @@ Created on Tue May 21 11:25:04 2019
 
 @author: Jaroslaw Granda
 """
-import os
-import time
+
 import pickle
-import numpy as np
 from tqdm import tqdm
 from functools import partial
 from typing import List
 
-from rdkit import Chem
-from rdkit.Chem import AllChem
 import tensorflow as tf
 
 from src.datasets.utils.tokenizer import Tokenizer
@@ -192,13 +188,9 @@ def parellel_serialize_to_tfrecords(paths,
                 writer.write(serialized)
                 n_parsed += 1
                 pbar.update(1)
-                
     writer.close()
     [p.terminate() for p in processes]
 
-
-
-    
 def tfrecord_reader(filenames, smiles_max_length, properties=[],
                     train=True, num_epochs=1, batch_size=16, buffer_size=1000):
     """ Create tensorflow dataset iterator which has functionality for reading and
