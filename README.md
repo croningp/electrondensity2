@@ -23,3 +23,6 @@ CPU_COUNT specifies number of cpus used for parallel processing of datasets
 ```
 python bin/datagen.py qm9
 ```
+This command will download and generate electron densities for QM9 dataset (it requires 256GB od harddisk space) using number of CPUs specified in CPU_COUNT.
+### Training the model
+### Generating new electron densities
