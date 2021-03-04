@@ -2,26 +2,24 @@
 
 ### Setup
 
-We recommend running electrondesity in conda environment
+We recommend running Electrondensity in conda environment. The following command creates conda environment with necessary dependencies. 
 
 `conda env create -f environment.yml`
 
-creates conda environment with dependencies recommended to
-run experiments described in the paper.
+File `env.sh` contains environmental variables that can be modified to suit your configuration:
 
-To activate conda environment run 
-
-`source env.sh`
-
-script env.sh contains environmental variables:
 DATA_DIR is the path for storing datasets
 LOG_DIR is the path for storing log files
 MODEL_DIR is a path for storing and saving models
-CPU_COUNT specifies number of cpus used for parallel processing of datasets
+CPU_COUNT specifies number of cpus used for parallel processing of datasets default -1 means all available CPUs.
 
-### generating training data
+It also downloads and installs `orbkit` package which cannot be installed using conda. To finish installation and activate electrondensity environmet run:
+```sh
+source env.sh
 ```
-python bin/datagen.py qm9
+### Generating training data
+```sh
+python bin/datagen.py QM9Dataset
 ```
 This command will download and generate electron densities for QM9 dataset (it requires 256GB od harddisk space) using number of CPUs specified in CPU_COUNT.
 ### Training the model
