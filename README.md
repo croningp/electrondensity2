@@ -4,7 +4,7 @@
 
 We recommend running Electrondensity in conda environment. The following command creates conda environment with necessary dependencies. 
 
-`conda env create -f environment.yml`
+`conda env create -f environment.yaml`
 
 File `env.sh` contains environmental variables that can be modified to suit your configuration:
 
@@ -19,7 +19,7 @@ source env.sh
 ```
 ### Generating training data
 ```sh
-python bin/datagen.py QM9Dataset
+python bin/datagen.py QM9
 ```
 This command will download and generate electron densities for QM9 dataset (it requires 256GB od harddisk space) using number of CPUs specified in CPU_COUNT.
 ### Training the model
