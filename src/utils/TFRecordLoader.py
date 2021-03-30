@@ -16,14 +16,15 @@ from functools import partial
 
 class TFRecordLoader():
 
-    def __init__(self, filenames, batch_size=64, ed_shape=[64, 64, 64, 1]):
+    def __init__(self, filename, batch_size=64, ed_shape=[64, 64, 64, 1]):
         """Create class and set basic parameters.
 
         Args:
-            filenames: List with path to the tfrecords
+            filename: Path to the tfrecord
             batch_size (int, optional): Defaults to 64.
             ed_shape (list, optional): Electron density shape. Defaults to [64,64,64,1].
         """
+        self.filename = filename
         self.AUTOTUNE = tf.data.experimental.AUTOTUNE
         self.BATCH_SIZE = batch_size
         self.ED_SHAPE = ed_shape
@@ -91,13 +92,12 @@ class TFRecordLoader():
 
         return (electron_density, *args)
 
-    def load_dataset(self, filenames, properties=[]):
+    def load_dataset(self, properties=[]):
         """ Loads a TFRecord and uses map to parse it, and stores it into self.dataset
         Check https://keras.io/examples/keras_recipes/tfrecord/ "define load methods"
         because this is basically a copy paste of that code with small modifications
 
         Args:
-            filenames: List with the paths to the TFRecords
             properties (list, optional): Check parse_fn above
 
         Returns:
@@ -106,7 +106,7 @@ class TFRecordLoader():
         ignore_order = tf.data.Options()
         ignore_order.experimental_deterministic = False  # disable order, increase speed
         dataset = tf.data.TFRecordDataset(
-            filenames
+            self.filename
         )  # automatically interleaves reads from multiple files
         dataset = dataset.with_options(
             ignore_order
@@ -118,17 +118,16 @@ class TFRecordLoader():
         # returns the dataset as loaded
         return dataset
 
-    def get_dataset(self, filenames, train=True, properties=[]):
+    def get_dataset(self, train=True, properties=[]):
         """Loads the TFRecord from the paths (filenames), and then shuffles the data and
         divides it into batches.
 
         Args:
-            filenames: List with the paths to the TFRecords
             train (bool, optional): Train or test. Train will do data augmentation.
                                     Defaults to True.
             properties (list, optional): Check parse_fn above
         """
-        dataset = self.load_dataset(filenames, properties)
+        dataset = self.load_dataset(properties)
 
         if train:
             dataset = dataset.shuffle(2048)

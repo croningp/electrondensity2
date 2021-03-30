@@ -4,11 +4,12 @@ channels:
     - rdkit
     - conda-forge
 dependencies:
-    - python==3.6.10
+    - python
+    - ipython
     - tqdm
     - rdkit==2020.03.2.0
-    - matplotlib==3.1.3
-    - tensorflow==2.2.0
+    - matplotlib
+    - tensorflow-gpu=2.4.1
     - xtb
     - requests
     - Cython
