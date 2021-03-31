@@ -13,7 +13,7 @@
 ##########################################################################################
 
 
-from tensorflow.keras.layers import Input, Conv2D, Flatten, Dense, Conv2DTranspose
+from tensorflow.keras.layers import Input, Conv3D, Flatten, Dense, Conv3DTranspose
 from tensorflow.keras.layers import Reshape, Activation, BatchNormalization
 from tensorflow.keras.layers import LeakyReLU, Dropout, Layer
 from tensorflow.keras.models import Model
@@ -121,7 +121,7 @@ class VariationalAutoencoder():
         x = encoder_input
 
         for i in range(self.n_layers_encoder):
-            conv_layer = Conv2D(
+            conv_layer = Conv3D(
                 filters=self.encoder_conv_filters[i],
                 kernel_size=self.encoder_conv_kernel_size[i],
                 strides=self.encoder_conv_strides[i],
@@ -158,7 +158,7 @@ class VariationalAutoencoder():
         x = Reshape(shape_before_flattening)(x)
 
         for i in range(self.n_layers_decoder):
-            conv_t_layer = Conv2DTranspose(
+            conv_t_layer = Conv3DTranspose(
                 filters=self.decoder_conv_t_filters[i],
                 kernel_size=self.decoder_conv_t_kernel_size[i],
                 strides=self.decoder_conv_t_strides[i],
