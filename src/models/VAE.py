@@ -53,20 +53,25 @@ class VAEModel(Model):
         self.decoder = decoder
         self.r_loss_factor = r_loss_factor
 
+    def losses(self, data):
+        """ KL loss + reconstruction loss"""
+        z_mean, z_log_var, z = self.encoder(data)
+        reconstruction = self.decoder(z)
+        reconstruction_loss = tf.reduce_mean(
+            tf.square(data - reconstruction), axis=[1, 2, 3]
+        )
+        reconstruction_loss *= self.r_loss_factor
+        kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
+        kl_loss = tf.reduce_sum(kl_loss, axis=1)
+        kl_loss *= -0.5
+        total_loss = reconstruction_loss + kl_loss
+        return total_loss, reconstruction_loss, kl_loss
+
     def train_step(self, data):
         if isinstance(data, tuple):
             data = data[0]
         with tf.GradientTape() as tape:
-            z_mean, z_log_var, z = self.encoder(data)
-            reconstruction = self.decoder(z)
-            reconstruction_loss = tf.reduce_mean(
-                tf.square(data - reconstruction), axis=[1, 2, 3]
-            )
-            reconstruction_loss *= self.r_loss_factor
-            kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
-            kl_loss = tf.reduce_sum(kl_loss, axis=1)
-            kl_loss *= -0.5
-            total_loss = reconstruction_loss + kl_loss
+            total_loss, reconstruction_loss, kl_loss = self.losses(data)
         grads = tape.gradient(total_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return {
@@ -75,8 +80,18 @@ class VAEModel(Model):
             "kl_loss": kl_loss,
         }
 
+    def test_step(self, data):
+        if isinstance(data, tuple):
+            data = data[0]
+        total_loss, reconstruction_loss, kl_loss = self.losses(data)
+        return {
+            "loss": total_loss,
+            "reconstruction_loss": reconstruction_loss,
+            "kl_loss": kl_loss,
+        }
+
     def call(self, inputs):
-        latent = self.encoder(inputs)
+        _,_,latent = self.encoder(inputs)
         return self.decoder(latent)
 
 
@@ -234,7 +249,10 @@ class VariationalAutoencoder():
 
         callbacks_list = [checkpoint1, checkpoint2, lr_sched]
 
+        # prepare validation dataset
+        vd = tf.data.Dataset.zip( (valid_dataset , valid_dataset) )
+
         self.model.fit(
-            train_dataset, validation_data=valid_dataset, epochs=epochs,
-            initial_epoch=initial_epoch, callbacks=callbacks_list
+            train_dataset, validation_data=vd, 
+            epochs=epochs, initial_epoch=initial_epoch#, callbacks=callbacks_list
         )

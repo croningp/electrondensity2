@@ -29,6 +29,7 @@ class TFRecordLoader():
         self.BATCH_SIZE = batch_size
         self.ED_SHAPE = ed_shape
         self.dataset = None  # placeholder to fill using function get_dataset
+        self.get_dataset()
 
     def parse_fn(self, serialized, properties=[]):
         """Parse the serialized object. This is used in load_dataset, in the map function.
@@ -118,7 +119,7 @@ class TFRecordLoader():
         # returns the dataset as loaded
         return dataset
 
-    def get_dataset(self, train=True, properties=[]):
+    def get_dataset(self, train=False, properties=[]):
         """Loads the TFRecord from the paths (filenames), and then shuffles the data and
         divides it into batches.
 
@@ -135,5 +136,5 @@ class TFRecordLoader():
                 map_func=self.train_preprocess, num_parallel_calls=self.AUTOTUNE)
 
         dataset = dataset.prefetch(buffer_size=self.AUTOTUNE)
-        dataset = dataset.batch(self.BATCH_SIZE)
-        self.dataset = dataset
+        dataset = dataset.batch(self.BATCH_SIZE, drop_remainder=True)
+        self.dataset = dataset#.repeat()
