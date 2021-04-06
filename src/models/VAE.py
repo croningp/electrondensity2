@@ -27,6 +27,8 @@ import numpy as np
 import os
 import pickle
 
+from src.utils import transform_ed
+
 
 class Sampling(Layer):
     """Given mu and log_var, as provided by the VAE envoder, it will sample an
@@ -55,6 +57,10 @@ class VAEModel(Model):
 
     def losses(self, data):
         """ KL loss + reconstruction loss"""
+        # from Jarek, data will be scaled between 0 (there are no negs) to 1
+        data = tf.tanh(data)
+        # from jarek. it applies a log
+        data = transform_ed(data)
         z_mean, z_log_var, z = self.encoder(data)
         reconstruction = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
@@ -240,19 +246,16 @@ class VariationalAutoencoder():
         )
 
         checkpoint_filepath = os.path.join(
-            run_folder, "weights/weights-{epoch:03d}-{loss:.2f}.h5")
+                run_folder, "weights-vae/weights-{epoch:03d}.h5")
         checkpoint1 = ModelCheckpoint(
-            checkpoint_filepath, save_weights_only=True, verbose=1)
+            checkpoint_filepath, save_weights_only=True)
         checkpoint2 = ModelCheckpoint(
             os.path.join(
-                run_folder, 'weights/weights.h5'), save_weights_only=True, verbose=1)
+                run_folder, 'weights-vae/weights.h5'), save_weights_only=True)
 
         callbacks_list = [checkpoint1, checkpoint2, lr_sched]
 
-        # prepare validation dataset
-        vd = tf.data.Dataset.zip( (valid_dataset , valid_dataset) )
-
         self.model.fit(
-            train_dataset, validation_data=vd, 
-            epochs=epochs, initial_epoch=initial_epoch#, callbacks=callbacks_list
+            train_dataset, validation_data=valid_dataset, steps_per_epoch=1,
+            epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )

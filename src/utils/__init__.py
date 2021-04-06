@@ -1,3 +1,4 @@
+import tensorflow as tf
 import sys
 import logging
 
@@ -29,3 +30,18 @@ def configure_logger(
     ch.setFormatter(log_format)
     ch.setLevel(console_logging_level)
     logger.addHandler(ch)
+
+def transform_ed(density):
+    """Transform electron density"""
+    density = density + 1e-4
+    density = tf.math.log(density)
+    density = density / tf.math.log(1e-4)
+    
+    return density
+
+def transform_back_ed(density):
+    """Back Transform electron density""" 
+    density = density * tf.math.log(1e-4)
+    density = tf.exp(density) - 1e-4
+    return density
+
