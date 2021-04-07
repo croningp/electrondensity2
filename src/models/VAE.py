@@ -266,6 +266,6 @@ class VariationalAutoencoder():
         callbacks_list = [checkpoint1, checkpoint2, lr_sched]
 
         self.model.fit(
-            train_dataset, validation_data=valid_dataset, steps_per_epoch=1,
+                train_dataset, validation_data=valid_dataset,  # steps_per_epoch=1,
             epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )
