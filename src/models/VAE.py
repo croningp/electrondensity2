@@ -54,6 +54,12 @@ class VAEModel(Model):
         self.encoder = encoder
         self.decoder = decoder
         self.r_loss_factor = r_loss_factor
+        # to track the different losses
+        self.total_loss_tracker = tf.keras.metrics.Mean(name="total_loss")
+        self.reconstruction_loss_tracker = tf.keras.metrics.Mean(
+            name="reconstruction_loss"
+        )
+        self.kl_loss_tracker = tf.keras.metrics.Mean(name="kl_loss")
 
     def losses(self, data):
         """ KL loss + reconstruction loss"""
@@ -80,10 +86,14 @@ class VAEModel(Model):
             total_loss, reconstruction_loss, kl_loss = self.losses(data)
         grads = tape.gradient(total_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+        # update the trackers
+        self.total_loss_tracker.update_state(total_loss)
+        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
+        self.kl_loss_tracker.update_state(kl_loss)
         return {
-            "loss": total_loss,
-            "reconstruction_loss": reconstruction_loss,
-            "kl_loss": kl_loss,
+            "loss": self.total_loss_tracker.result(),
+            "reconstruction_loss": self.reconstruction_loss_tracker.result(),
+            "kl_loss": self.kl_loss_tracker.result(),
         }
 
     def test_step(self, data):
@@ -97,7 +107,7 @@ class VAEModel(Model):
         }
 
     def call(self, inputs):
-        _,_,latent = self.encoder(inputs)
+        _, _, latent = self.encoder(inputs)
         return self.decoder(latent)
 
 

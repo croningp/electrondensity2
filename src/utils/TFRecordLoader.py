@@ -137,4 +137,4 @@ class TFRecordLoader():
 
         dataset = dataset.prefetch(buffer_size=self.AUTOTUNE)
         dataset = dataset.batch(self.BATCH_SIZE, drop_remainder=True)
-        self.dataset = dataset#.repeat()
+        self.dataset = dataset  # .repeat()
