@@ -256,7 +256,7 @@ class VariationalAutoencoder():
         )
 
         checkpoint_filepath = os.path.join(
-                run_folder, "weights-vae/weights-{epoch:03d}.h5")
+                run_folder, "weights-vae/weights-{epoch:03d}-{loss:.2f}.h5")
         checkpoint1 = ModelCheckpoint(
             checkpoint_filepath, save_weights_only=True)
         checkpoint2 = ModelCheckpoint(
@@ -266,6 +266,6 @@ class VariationalAutoencoder():
         callbacks_list = [checkpoint1, checkpoint2, lr_sched]
 
         self.model.fit(
-            train_dataset, validation_data=valid_dataset, steps_per_epoch=1,
+                train_dataset, validation_data=valid_dataset,  # steps_per_epoch=1,
             epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )
