@@ -182,7 +182,6 @@ class VariationalAutoencoder():
             )
 
         # THE DECODER
-
         decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
 
         x = Dense(np.prod(shape_before_flattening))(decoder_input)
@@ -234,6 +233,7 @@ class VariationalAutoencoder():
                 ], f)
 
     def load_weights(self, filepath):
+        self.model.built = True
         self.model.load_weights(filepath)
 
     def step_decay_schedule(self, initial_lr, decay_factor=0.5, step_size=1):
@@ -256,16 +256,17 @@ class VariationalAutoencoder():
         )
 
         checkpoint_filepath = os.path.join(
-                run_folder, "weights/weights-{epoch:03d}.h5")
+                run_folder, "weights/weights-{epoch:03d}-{loss:.2f}.h5")
         checkpoint1 = ModelCheckpoint(
             checkpoint_filepath, save_weights_only=True)
         checkpoint2 = ModelCheckpoint(
-            os.path.join(
-                run_folder, 'weights/weights.h5'), save_weights_only=True)
+            os.path.join(run_folder, 'weights/weights.h5'),
+            period=5, save_weights_only=True)
 
         callbacks_list = [checkpoint1, checkpoint2, lr_sched]
 
         self.model.fit(
-                train_dataset, validation_data=valid_dataset,  # steps_per_epoch=1,
+            train_dataset, validation_data=valid_dataset,
+            #steps_per_epoch=1, validation_steps=1,
             epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )

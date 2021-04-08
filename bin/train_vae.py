@@ -16,14 +16,19 @@ from src.models.VAE import VariationalAutoencoder
 
 # RUN PARAMS #############################################################################
 RUN_FOLDER = "logs/vae/"
-startdate = datetime.now().strftime('%Y-%m-%d')
-RUN_FOLDER += startdate + "/"
+mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
-if not os.path.exists(RUN_FOLDER):
-    os.mkdir(RUN_FOLDER)
-    os.mkdir(os.path.join(RUN_FOLDER, 'weights'))
+if mode == 'build':
+    startdate = datetime.now().strftime('%Y-%m-%d')
+    RUN_FOLDER += startdate + "/"
 
-mode = 'build'  # 'load' #  use build to train, load to continue an old train
+    if not os.path.exists(RUN_FOLDER):
+        os.mkdir(RUN_FOLDER)
+        os.mkdir(os.path.join(RUN_FOLDER, 'weights'))
+
+else:  # mode == 'load'
+    RUN_FOLDER += '2021-04-08/'  # fill with the right date
+
 DATA_FOLDER = "/home/nvme/juanma/Data/Jarek/"
 
 # DATA ###################################################################################
@@ -41,12 +46,13 @@ vae = VariationalAutoencoder(
     encoder_conv_filters=[32, 64, 64, 64],
     encoder_conv_kernel_size=[3, 3, 3, 3],
     encoder_conv_strides=[2, 2, 2, 2],
-    decoder_conv_t_filters=[64, 64, 32, 3],
-    decoder_conv_t_kernel_size=[3, 3, 3, 3],
-    decoder_conv_t_strides=[2, 2, 2, 2],
+    dec_conv_t_filters=[64, 64, 32, 1],
+    dec_conv_t_kernel_size=[3, 3, 3, 3],
+    dec_conv_t_strides=[2, 2, 2, 2],
     z_dim=200,
     use_batch_norm=True,
-    use_dropout=True
+    use_dropout=True,
+    r_loss_factor=10000
     )
 
 if mode == 'build':
@@ -56,12 +62,10 @@ else:
 
 # TRAINING ###############################################################################
 LEARNING_RATE = 0.0005
-R_LOSS_FACTOR = 10000
-EPOCHS = 200
-PRINT_EVERY_N_BATCHES = 100
+EPOCHS = 1000
 INITIAL_EPOCH = 0
 
-vae.compile(LEARNING_RATE, R_LOSS_FACTOR)
+vae.compile(LEARNING_RATE)
 
-vae.train(tfr_va.dataset, tfr_va.dataset, EPOCHS, RUN_FOLDER, INITIAL_EPOCH)
+vae.train(tfr.dataset, tfr_va.dataset, EPOCHS, RUN_FOLDER, INITIAL_EPOCH)
 
