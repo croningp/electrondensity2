@@ -15,12 +15,12 @@ from src.utils.TFRecordLoader import TFRecordLoader
 from src.models.VAE import VariationalAutoencoder
 
 # RUN PARAMS #############################################################################
-RUN_FOLDER = "logs/vae/"
+RUN_FOLDER = 'logs/vae/'
 mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
-    RUN_FOLDER += startdate + "/"
+    RUN_FOLDER += startdate + '/'
 
     if not os.path.exists(RUN_FOLDER):
         os.mkdir(RUN_FOLDER)
@@ -29,12 +29,12 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-04-08/'  # fill with the right date
 
-DATA_FOLDER = "/home/nvme/juanma/Data/Jarek/"
+DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets
-path2tf = DATA_FOLDER + "train.tfrecords"
-path2va = DATA_FOLDER + "valid.tfrecords"
+path2tf = DATA_FOLDER + 'train.tfrecords'
+path2va = DATA_FOLDER + 'valid.tfrecords'
 # load train and validation sets
 tfr = TFRecordLoader(path2tf)
 tfr_va = TFRecordLoader(path2va)

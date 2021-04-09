@@ -27,7 +27,7 @@ import numpy as np
 import os
 import pickle
 
-from src.utils import transform_ed
+from src.utils import transform_ed, transform_back_ed
 
 
 class Sampling(Layer):
@@ -61,13 +61,16 @@ class VAEModel(Model):
         )
         self.kl_loss_tracker = tf.keras.metrics.Mean(name="kl_loss")
 
-    def losses(self, data):
-        """ KL loss + reconstruction loss"""
+    def preprocess_data(self, data):
+        """ Jarek put the data through a tanh and then through a log """
         # from Jarek, data will be scaled between 0 (there are no negs) to 1
         data = tf.tanh(data)
         # from jarek. it applies a log
-        data = transform_ed(data)
-        z_mean, z_log_var, z = self.encoder(data)
+        return transform_ed(data)
+
+    def losses(self, data):
+        """ KL loss + reconstruction loss"""
+        z_mean, z_log_var, z = self.encoder( self.preprocess_data(data) )
         reconstruction = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
             tf.square(data - reconstruction), axis=[1, 2, 3]
@@ -107,7 +110,8 @@ class VAEModel(Model):
         }
 
     def call(self, inputs):
-        _, _, latent = self.encoder(inputs)
+        """ inputs must be as fetched from the TFRecordLoader """
+        _, _, latent = self.encoder( self.preprocess_data(inputs) )
         return self.decoder(latent)
 
 
@@ -270,3 +274,36 @@ class VariationalAutoencoder():
             #steps_per_epoch=1, validation_steps=1,
             epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )
+
+    def sample_model_validation(self, valid_dataset, savepath=None, num_batches=10):
+        """
+        Generates a given number of electron densities from the model and 
+        saves them to disk if path is given.
+        
+        Args:
+            valid_dataset: it must be a tfrecord, loaded with tfrecorloader
+            savepath: str to path where to save the results
+            num_batches: int how many batches to generate
+        """
+        
+        original_cubes = []
+        generated_cubes = []
+        
+        for i in range(num_batches):
+            # cubes = self.generator(batch_size, training=False)
+            next_batch = valid_dataset.next()[0]
+            cubes = self.model(next_batch)
+            cubes = transform_back_ed(cubes).numpy()
+            generated_cubes.extend(cubes)
+            original_cubes.extend(next_batch.numpy())
+        
+        generated_cubes = np.array(generated_cubes)[:num_batches]
+        original_cubes = np.array(original_cubes)[:num_batches]
+        
+        if savepath is not None:
+            print('Electron densities saved to {}'.format(savepath))
+            with open(savepath, 'wb') as pfile:
+                pickle.dump([original_cubes, generated_cubes], pfile)
+            
+        return original_cubes, generated_cubes
+

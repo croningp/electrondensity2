@@ -28,8 +28,8 @@ class TFRecordLoader():
         self.AUTOTUNE = tf.data.experimental.AUTOTUNE
         self.BATCH_SIZE = batch_size
         self.ED_SHAPE = ed_shape
-        self.dataset = None  # placeholder to fill using function get_dataset
-        self.get_dataset()
+        self.get_dataset()  # this will set self.dataset
+        self.dataset_iter = iter(self.dataset)
 
     def parse_fn(self, serialized, properties=[]):
         """Parse the serialized object. This is used in load_dataset, in the map function.
@@ -138,3 +138,13 @@ class TFRecordLoader():
         dataset = dataset.prefetch(buffer_size=self.AUTOTUNE)
         dataset = dataset.batch(self.BATCH_SIZE, drop_remainder=True)
         self.dataset = dataset  # .repeat()
+
+    def next(self):
+        """ Return the next batch
+
+        Returns:
+            tuple: next batch, you will need to get [0] for the actual tensor
+        """
+
+        return next(self.dataset_iter)
+        
