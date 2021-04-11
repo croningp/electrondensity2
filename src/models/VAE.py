@@ -176,6 +176,7 @@ class VariationalAutoencoder():
         shape_before_flattening = K.int_shape(x)[1:]
 
         x = Flatten()(x)
+        x = Dense(self.z_dim*2, name='before_latent')(x)
         self.mu = Dense(self.z_dim, name='mu')(x)
         self.log_var = Dense(self.z_dim, name='log_var')(x)
 
@@ -188,7 +189,8 @@ class VariationalAutoencoder():
         # THE DECODER
         decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
 
-        x = Dense(np.prod(shape_before_flattening))(decoder_input)
+        x = Dense(self.z_dim*2, name='after_latent')(decoder_input)
+        x = Dense(np.prod(shape_before_flattening))(x)
         x = Reshape(shape_before_flattening)(x)
 
         for i in range(self.n_layers_decoder):
