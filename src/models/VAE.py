@@ -73,7 +73,7 @@ class VAEModel(Model):
         z_mean, z_log_var, z = self.encoder( self.preprocess_data(data) )
         reconstruction = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
-            tf.square(data - reconstruction), axis=[1, 2, 3]
+            tf.square(data - reconstruction), axis=[1, 2, 3, 4]
         )
         reconstruction_loss *= self.r_loss_factor
         kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
@@ -265,7 +265,7 @@ class VariationalAutoencoder():
             checkpoint_filepath, save_weights_only=True)
         checkpoint2 = ModelCheckpoint(
             os.path.join(run_folder, 'weights/weights.h5'),
-            period=5, save_weights_only=True)
+            save_weights_only=True)
 
         callbacks_list = [checkpoint1, checkpoint2, lr_sched]
 
@@ -297,8 +297,8 @@ class VariationalAutoencoder():
             generated_cubes.extend(cubes)
             original_cubes.extend(next_batch.numpy())
         
-        generated_cubes = np.array(generated_cubes)[:num_batches]
-        original_cubes = np.array(original_cubes)[:num_batches]
+        generated_cubes = np.array(generated_cubes)
+        original_cubes = np.array(original_cubes)
         
         if savepath is not None:
             print('Electron densities saved to {}'.format(savepath))

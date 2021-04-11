@@ -27,7 +27,7 @@ if mode == 'build':
         os.mkdir(os.path.join(RUN_FOLDER, 'weights'))
 
 else:  # mode == 'load'
-    RUN_FOLDER += '2021-04-08/'  # fill with the right date
+    RUN_FOLDER += '2021-04-10/'  # fill with the right date
 
 DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
 
@@ -43,16 +43,16 @@ tfr_va = TFRecordLoader(path2va)
 # create VAE model
 vae = VariationalAutoencoder(
     input_dim=tfr.ED_SHAPE,
-    encoder_conv_filters=[32, 64, 64, 64],
+    encoder_conv_filters=[16, 64, 128, 256],
     encoder_conv_kernel_size=[3, 3, 3, 3],
     encoder_conv_strides=[2, 2, 2, 2],
-    dec_conv_t_filters=[64, 64, 32, 1],
+    dec_conv_t_filters=[256, 128, 64, 16],
     dec_conv_t_kernel_size=[3, 3, 3, 3],
     dec_conv_t_strides=[2, 2, 2, 2],
     z_dim=200,
     use_batch_norm=True,
     use_dropout=True,
-    r_loss_factor=10000
+    r_loss_factor=50000
     )
 
 if mode == 'build':
