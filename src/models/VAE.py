@@ -127,7 +127,7 @@ class VariationalAutoencoder():
         self, input_dim,
         encoder_conv_filters, encoder_conv_kernel_size, encoder_conv_strides,
         dec_conv_t_filters, dec_conv_t_kernel_size, dec_conv_t_strides,
-        z_dim, r_loss_factor, use_batch_norm=False, use_dropout=False
+        z_dim, r_loss_factor, use_batch_norm=False, use_dropout=False,
     ):
 
         self.name = 'variational_autoencoder'
