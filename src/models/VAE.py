@@ -19,7 +19,7 @@ from tensorflow.keras.layers import LeakyReLU, Dropout, Layer
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from tensorflow.keras.callbacks import ModelCheckpoint
 
 import tensorflow as tf
 
@@ -28,6 +28,7 @@ import os
 import pickle
 
 from src.utils import transform_ed, transform_back_ed
+from src.utils.callbacks import CustomCallback, step_decay_schedule 
 
 
 class Sampling(Layer):
@@ -70,10 +71,11 @@ class VAEModel(Model):
 
     def losses(self, data):
         """ KL loss + reconstruction loss"""
-        z_mean, z_log_var, z = self.encoder( self.preprocess_data(data) )
+        data = self.preprocess_data(data)
+        z_mean, z_log_var, z = self.encoder( data )
         reconstruction = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
-            tf.square(data - reconstruction), axis=[1, 2, 3]
+            tf.square(data - reconstruction), axis=[1, 2, 3, 4]
         )
         reconstruction_loss *= self.r_loss_factor
         kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
@@ -176,6 +178,7 @@ class VariationalAutoencoder():
         shape_before_flattening = K.int_shape(x)[1:]
 
         x = Flatten()(x)
+        # x = Dense(self.z_dim, name='before_latent')(x)
         self.mu = Dense(self.z_dim, name='mu')(x)
         self.log_var = Dense(self.z_dim, name='log_var')(x)
 
@@ -188,6 +191,7 @@ class VariationalAutoencoder():
         # THE DECODER
         decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
 
+        # x = Dense(self.z_dim, name='after_latent')(decoder_input)
         x = Dense(np.prod(shape_before_flattening))(decoder_input)
         x = Reshape(shape_before_flattening)(x)
 
@@ -240,23 +244,16 @@ class VariationalAutoencoder():
         self.model.built = True
         self.model.load_weights(filepath)
 
-    def step_decay_schedule(self, initial_lr, decay_factor=0.5, step_size=1):
-        '''
-        Wrapper function to create a LearningRateScheduler with step decay schedule.
-        '''
-        def schedule(epoch):
-            new_lr = initial_lr * (decay_factor ** np.floor(epoch/step_size))
-            return new_lr
-
-        return LearningRateScheduler(schedule)
-
     def train(
         self, train_dataset, valid_dataset, epochs, run_folder,
-        initial_epoch=0, lr_decay=1
+        initial_epoch=0, print_every_n_epochs=1, lr_decay=1, 
     ):
 
-        lr_sched = self.step_decay_schedule(
+        lr_sched = step_decay_schedule(
             initial_lr=self.learning_rate, decay_factor=lr_decay, step_size=1
+        )
+        custom_callback = CustomCallback(
+            run_folder, print_every_n_epochs, initial_epoch, self, valid_dataset
         )
 
         checkpoint_filepath = os.path.join(
@@ -265,17 +262,17 @@ class VariationalAutoencoder():
             checkpoint_filepath, save_weights_only=True)
         checkpoint2 = ModelCheckpoint(
             os.path.join(run_folder, 'weights/weights.h5'),
-            period=5, save_weights_only=True)
+            save_weights_only=True)
 
-        callbacks_list = [checkpoint1, checkpoint2, lr_sched]
+        callbacks_list = [checkpoint1, checkpoint2, lr_sched, custom_callback]
 
         self.model.fit(
-            train_dataset, validation_data=valid_dataset,
-            #steps_per_epoch=1, validation_steps=1,
+            train_dataset.dataset, validation_data=valid_dataset.dataset,
+            # steps_per_epoch=10, validation_steps=10,
             epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )
 
-    def sample_model_validation(self, valid_dataset, savepath=None, num_batches=10):
+    def sample_model_validation(self, valid_dataset, savepath=None, num_batches=1):
         """
         Generates a given number of electron densities from the model and 
         saves them to disk if path is given.
@@ -290,15 +287,14 @@ class VariationalAutoencoder():
         generated_cubes = []
         
         for i in range(num_batches):
-            # cubes = self.generator(batch_size, training=False)
             next_batch = valid_dataset.next()[0]
             cubes = self.model(next_batch)
             cubes = transform_back_ed(cubes).numpy()
             generated_cubes.extend(cubes)
             original_cubes.extend(next_batch.numpy())
         
-        generated_cubes = np.array(generated_cubes)[:num_batches]
-        original_cubes = np.array(original_cubes)[:num_batches]
+        generated_cubes = np.array(generated_cubes)[:10]
+        original_cubes = np.array(original_cubes)[:10]
         
         if savepath is not None:
             print('Electron densities saved to {}'.format(savepath))
