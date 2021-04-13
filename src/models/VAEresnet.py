@@ -2,7 +2,7 @@ from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 
 from src.models.VAE import VariationalAutoencoder
-from src.utils.layers import identity_block, conv_block
+from src.models.layers import identity_block, conv_block
 
 
 class VAEresnet(VariationalAutoencoder):
