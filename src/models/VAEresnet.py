@@ -67,14 +67,17 @@ class VAEresnet(VariationalAutoencoder):
             strides = self.decoder_conv_t_strides[i]
 
             # in the decoder we will upsample instead of using conv strides to downsample
-            for i in range(strides-1):
+            for j in range(strides-1):
                 x = UpSampling3D()(x)
 
-            n = len(self.encoder_conv_filters)  # to get a number to continue naming
+            stage = i+self.n_layers_encoder  # to get a number to continue naming
             # and create the residual blocks. I follow how resnet50 does it.
-            x = conv_block(x, kernel_size, fmaps, stage=i+n, block='a')
-            x = identity_block(x, kernel_size, fmaps, stage=i+n, block='b')
-            x = identity_block(x, kernel_size, fmaps, stage=i+n, block='c')
+            x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
+            x = identity_block(x, kernel_size, fmaps, stage=stage, block='b')
+            x = identity_block(x, kernel_size, fmaps, stage=stage, block='c')
+
+        # last one with 1 feature map
+        x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)
 
         decoder_output = x
         self.decoder = Model(decoder_input, decoder_output, name='decoder')
