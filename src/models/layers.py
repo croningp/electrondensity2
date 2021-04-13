@@ -28,13 +28,13 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     bn_name_base = 'bn' + str(stage) + block + '_branch'
 
     x = layers.Conv3D(filters1, kernel_size, padding='same',
-                      kernel_initializer='he_normal',
+                      kernel_initializer='orthogonal',
                       name=conv_name_base + '2a')(input_tensor)
     x = layers.BatchNormalization(name=bn_name_base + '2a')(x)
     x = layers.Activation('relu')(x)
 
     x = layers.Conv3D(filters3, kernel_size, padding='same',
-                      kernel_initializer='he_normal',
+                      kernel_initializer='orthogonal',
                       name=conv_name_base + '2b')(x)
     x = layers.BatchNormalization(name=bn_name_base + '2b')(x)
 
@@ -67,18 +67,18 @@ def conv_block(input_tensor,
     bn_name_base = 'bn' + str(stage) + block + '_branch'
 
     x = layers.Conv3D(filters1, kernel_size, strides=strides, padding='same',
-                      kernel_initializer='he_normal',
+                      kernel_initializer='orthogonal',
                       name=conv_name_base + '2a')(input_tensor)
     x = layers.BatchNormalization(name=bn_name_base + '2a')(x)
     x = layers.Activation('relu')(x)
 
     x = layers.Conv3D(filters3, kernel_size, padding='same',
-                      kernel_initializer='he_normal',
+                      kernel_initializer='orthogonal',
                       name=conv_name_base + '2b')(x)
     x = layers.BatchNormalization(name=bn_name_base + '2b')(x)
 
     shortcut = layers.Conv3D(filters3, 1, strides=strides,
-                             kernel_initializer='he_normal',
+                             kernel_initializer='orthogonal',
                              name=conv_name_base + '1')(input_tensor)
     shortcut = layers.BatchNormalization(name=bn_name_base + '1')(shortcut)
 
