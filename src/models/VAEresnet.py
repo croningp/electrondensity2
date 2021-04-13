@@ -1,13 +1,16 @@
-from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Input, Flatten, Dense, Reshape, UpSampling3D
 from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
 
-from src.models.VAE import VariationalAutoencoder
+import numpy as np
+
+from src.models.VAE import VariationalAutoencoder, Sampling, VAEModel
 from src.models.layers import identity_block, conv_block
 
 
 class VAEresnet(VariationalAutoencoder):
 
-    def __init__(        
+    def __init__(
         self, input_dim,
         encoder_conv_filters, encoder_conv_kernel_size, encoder_conv_strides,
         dec_conv_t_filters, dec_conv_t_kernel_size, dec_conv_t_strides,
@@ -22,12 +25,58 @@ class VAEresnet(VariationalAutoencoder):
         )
 
     def _build(self):
+
         # THE ENCODER
         encoder_input = Input(shape=self.input_dim, name='encoder_input')
-
         x = encoder_input
 
-        x = conv_block(x, 3, [64, 64, 256], stage=2, block='a')   
-        x = identity_block(x, 3, [64, 64, 256], stage=1, block='a')
+        for i in range(self.n_layers_encoder):
+            # just fetch the parameters in a variable so it doesn't get super long
+            filters = self.encoder_conv_filters[i]
+            fmaps = [filters//4, filters//4, filters]
+            kernel_size = self.encoder_conv_kernel_size[i]
+            strides = self.encoder_conv_strides[i]
+            # and create the residual blocks. I follow how resnet50 does it.
+            x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
+            x = identity_block(x, kernel_size, fmaps, stage=i, block='b')
+            x = identity_block(x, kernel_size, fmaps, stage=i, block='c')
 
-        self.model = Model(encoder_input, x)
+        shape_before_flattening = K.int_shape(x)[1:]
+
+        x = Flatten()(x)
+        self.mu = Dense(self.z_dim, name='mu')(x)
+        self.log_var = Dense(self.z_dim, name='log_var')(x)
+
+        self.z = Sampling(name='encoder_output')([self.mu, self.log_var])
+
+        self.encoder = Model(
+            encoder_input, [self.mu, self.log_var, self.z], name='encoder'
+            )
+
+        # THE DECODER
+        decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
+
+        x = Dense(np.prod(shape_before_flattening))(decoder_input)
+        x = Reshape(shape_before_flattening)(x)
+
+        for i in range(self.n_layers_decoder):
+            # just fetch the parameters in a variable so it doesn't get super long
+            filters = self.decoder_conv_t_filters[i]
+            fmaps = [filters//4, filters//4, filters]
+            kernel_size = self.decoder_conv_t_kernel_size[i]
+            strides = self.decoder_conv_t_strides[i]
+
+            # in the decoder we will upsample instead of using conv strides to downsample
+            for i in range(strides-1):
+                x = UpSampling3D()(x)
+
+            n = len(self.encoder_conv_filters)  # to get a number to continue naming
+            # and create the residual blocks. I follow how resnet50 does it.
+            x = conv_block(x, kernel_size, fmaps, stage=i+n, block='a')
+            x = identity_block(x, kernel_size, fmaps, stage=i+n, block='b')
+            x = identity_block(x, kernel_size, fmaps, stage=i+n, block='c')
+
+        decoder_output = x
+        self.decoder = Model(decoder_input, decoder_output, name='decoder')
+        # THE FULL VAE
+        self.model = VAEModel(self.encoder, self.decoder, self.r_loss_factor)

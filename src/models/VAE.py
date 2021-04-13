@@ -28,7 +28,7 @@ import os
 import pickle
 
 from src.utils import transform_ed, transform_back_ed
-from src.utils.callbacks import CustomCallback, step_decay_schedule 
+from src.utils.callbacks import CustomCallback, step_decay_schedule
 
 
 class Sampling(Layer):
@@ -72,7 +72,7 @@ class VAEModel(Model):
     def losses(self, data):
         """ KL loss + reconstruction loss"""
         data = self.preprocess_data(data)
-        z_mean, z_log_var, z = self.encoder( data )
+        z_mean, z_log_var, z = self.encoder(data)
         reconstruction = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
             tf.square(data - reconstruction), axis=[1, 2, 3, 4]
@@ -113,7 +113,7 @@ class VAEModel(Model):
 
     def call(self, inputs):
         """ inputs must be as fetched from the TFRecordLoader """
-        _, _, latent = self.encoder( self.preprocess_data(inputs) )
+        _, _, latent = self.encoder(self.preprocess_data(inputs))
         return self.decoder(latent)
 
 
@@ -246,7 +246,7 @@ class VariationalAutoencoder():
 
     def train(
         self, train_dataset, valid_dataset, epochs, run_folder,
-        initial_epoch=0, print_every_n_epochs=1, lr_decay=1, 
+        initial_epoch=0, print_every_n_epochs=1, lr_decay=1
     ):
 
         lr_sched = step_decay_schedule(
@@ -274,32 +274,31 @@ class VariationalAutoencoder():
 
     def sample_model_validation(self, valid_dataset, savepath=None, num_batches=1):
         """
-        Generates a given number of electron densities from the model and 
+        Generates a given number of electron densities from the model and
         saves them to disk if path is given.
-        
+
         Args:
             valid_dataset: it must be a tfrecord, loaded with tfrecorloader
             savepath: str to path where to save the results
             num_batches: int how many batches to generate
         """
-        
+
         original_cubes = []
         generated_cubes = []
-        
+
         for i in range(num_batches):
             next_batch = valid_dataset.next()[0]
             cubes = self.model(next_batch)
             cubes = transform_back_ed(cubes).numpy()
             generated_cubes.extend(cubes)
             original_cubes.extend(next_batch.numpy())
-        
+
         generated_cubes = np.array(generated_cubes)[:10]
         original_cubes = np.array(original_cubes)[:10]
-        
+
         if savepath is not None:
             print('Electron densities saved to {}'.format(savepath))
             with open(savepath, 'wb') as pfile:
                 pickle.dump([original_cubes, generated_cubes], pfile)
-            
-        return original_cubes, generated_cubes
 
+        return original_cubes, generated_cubes

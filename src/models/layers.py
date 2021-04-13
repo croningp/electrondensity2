@@ -1,3 +1,12 @@
+##########################################################################################
+#
+# Different layers to use in our models.
+# - identity_block and conv_block are copied from keras resnet50, using conv3d instead.
+#
+# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+#
+##########################################################################################
+
 from tensorflow.keras import layers
 
 
@@ -39,6 +48,7 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     x = layers.add([x, input_tensor])
     x = layers.Activation('relu')(x)
     return x
+
 
 def conv_block(input_tensor,
                kernel_size,
