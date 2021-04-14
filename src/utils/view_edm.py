@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="file to open", type=str)
-    parser.add_argument("--render", help="EDMs to render", nargs='?', const=5, type=int)
+    parser.add_argument("--render", help="EDMs to render", default=5, type=int)
     args = parser.parse_args()
     print('Opening {}'.format(args.file))
 
@@ -49,6 +49,6 @@ if __name__ == "__main__":
     orig = cubes[0]  # original EDMs from the validation set
     gene = cubes[1]  # generated EDMs from the validation set. Related 1 to 1 to orig
 
-    for i in range(10):
+    for i in range(args.render):
         output.view_with_mayavi(grid.x, grid.y, grid.z, orig[i, :, :, :, 0])
         output.view_with_mayavi(grid.x, grid.y, grid.z, gene[i, :, :, :, 0])
