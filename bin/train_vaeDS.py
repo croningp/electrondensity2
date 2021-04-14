@@ -10,13 +10,13 @@
 ##########################################################################################
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 from datetime import datetime
 
 from src.utils.TFRecordLoader import TFRecordLoader
 from src.models.VAE import VariationalAutoencoder
 
 # RUN PARAMS #############################################################################
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 RUN_FOLDER = 'logs/vae/'
 mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
