@@ -39,7 +39,6 @@ class VAEresnet(VariationalAutoencoder):
             # and create the residual blocks. I follow how resnet50 does it.
             x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
             x = identity_block(x, kernel_size, fmaps, stage=i, block='b')
-            x = identity_block(x, kernel_size, fmaps, stage=i, block='c')
 
         shape_before_flattening = K.int_shape(x)[1:]
 
@@ -74,7 +73,6 @@ class VAEresnet(VariationalAutoencoder):
             # and create the residual blocks. I follow how resnet50 does it.
             x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
             x = identity_block(x, kernel_size, fmaps, stage=stage, block='b')
-            x = identity_block(x, kernel_size, fmaps, stage=stage, block='c')
 
         # last one with 1 feature map
         x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)
