@@ -1,8 +1,8 @@
 ##########################################################################################
 #
-# This script is a sort of main file for the model in src.models.VAE.py, which is a
-# variational autoencoder. This script will aim to show to train it, and also to
-# save and load the model.
+# This script is a sort of main file for the model in src.models.VAEAttention.py, which is 
+# a variational autoencoder using self-attention. This script will aim to show to train 
+# it, and also to save and load the model.
 # This file is modified to train in Dragonsoop
 #
 # Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
@@ -39,8 +39,8 @@ DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'
 path2tf = DATA_FOLDER + 'train.tfrecords'
 path2va = DATA_FOLDER + 'valid.tfrecords'
 # load train and validation sets
-tfr = TFRecordLoader(path2tf)
-tfr_va = TFRecordLoader(path2va)
+tfr = TFRecordLoader(path2tf, batch_size=32)
+tfr_va = TFRecordLoader(path2va, batch_size=32)
 
 # ARCHITECTURE ###########################################################################
 # create VAE model
@@ -57,6 +57,9 @@ vae = VAEattention(
     use_dropout=True,
     r_loss_factor=50000
     )
+
+print(vae.encoder.summary())
+print(vae.decoder.summary())
 
 if mode == 'build':
     vae.save(RUN_FOLDER)

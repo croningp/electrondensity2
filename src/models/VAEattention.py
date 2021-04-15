@@ -5,7 +5,7 @@ from tensorflow.keras import backend as K
 import numpy as np
 
 from src.models.VAE import VariationalAutoencoder, Sampling, VAEModel
-from src.models.layers import conv_block, TransformerBlock
+from src.models.layers import conv_block, identity_block, TransformerBlock
 
 
 class VAEattention(VariationalAutoencoder):
@@ -38,6 +38,9 @@ class VAEattention(VariationalAutoencoder):
             strides = self.encoder_conv_strides[i]
             # and create the residual blocks. I follow how resnet50 does it.
             x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
+            x = identity_block(x, kernel_size, fmaps, stage=i, block='b')
+            x = identity_block(x, kernel_size, fmaps, stage=i, block='c')
+            # and attention
             x = TransformerBlock(filters)(x)
 
         shape_before_flattening = K.int_shape(x)[1:]
@@ -64,15 +67,18 @@ class VAEattention(VariationalAutoencoder):
             fmaps = [filters//4, filters//4, filters]
             kernel_size = self.decoder_conv_t_kernel_size[i]
             strides = self.decoder_conv_t_strides[i]
+            stage = i+self.n_layers_encoder  # to get a number to continue naming
+            
+            # create the residual block
+            x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
+            x = identity_block(x, kernel_size, fmaps, stage=stage, block='b')
+            x = identity_block(x, kernel_size, fmaps, stage=stage, block='c')
+            # now the attention block
+            x = TransformerBlock(filters)(x)
 
             # in the decoder we will upsample instead of using conv strides to downsample
             for j in range(strides-1):
                 x = UpSampling3D()(x)
-
-            stage = i+self.n_layers_encoder  # to get a number to continue naming
-            # and create the residual blocks. I follow how resnet50 does it.
-            x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
-            x = TransformerBlock(filters)(x)
 
         # last one with 1 feature map
         x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)

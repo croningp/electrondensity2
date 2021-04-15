@@ -96,8 +96,8 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
 
 class GoogleAttention(layers.Layer):
 
-    def __init__(self, channels, name="gattention", **kwargs):
-        super(GoogleAttention, self).__init__(name=name, **kwargs)
+    def __init__(self, channels):
+        super(GoogleAttention, self).__init__()
         self.ch = channels
 
     def hwd_flatten(self, x):
@@ -106,36 +106,53 @@ class GoogleAttention(layers.Layer):
         return layers.Reshape((-1, s[-1]))(x)
 
     def build(self, input_shape):
-        """ from https://stackoverflow.com/a/50820539/515028 """
+        conv = layers.Conv3D  # just to simplify naming
+
+        self.f = tf.keras.Sequential(
+            [conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal'),
+             layers.MaxPooling3D(), ]
+        )
+        self.g = tf.keras.Sequential(
+            [conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal'),
+             layers.MaxPooling3D(), ]
+        )
+        self.h = tf.keras.Sequential(
+            [conv(self.ch // 2, 1, strides=1, kernel_initializer='orthogonal'),
+             layers.MaxPooling3D(), ]
+        )
+        self.v = tf.keras.Sequential(
+            [layers.UpSampling3D(),
+             conv(self.ch, 1, strides=1, kernel_initializer='orthogonal'), ]
+        )
+
+        # self.f = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')
+        # self.g = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')
+        # self.h = conv(self.ch // 2, 1, strides=1, kernel_initializer='orthogonal')
+        # self.v = conv(self.ch, 1, strides=1, kernel_initializer='orthogonal')
+
         # Create a trainable weight variable for this layer:
         self.gamma = self.add_weight(name='gamma', shape=[1],
                                      # initializer='uniform',
                                      initializer=tf.keras.initializers.Constant(0),
                                      trainable=True)
-        # another possible init is tf.keras.initializers.Constant(0)
-        # original paper uses initializer=tf.initializers.Zeros
 
         super(GoogleAttention, self).build(input_shape)
 
     def call(self, x):
 
-        conv = layers.Conv3D  # just to simplify naming
-        height, width, depth, num_channels = K.int_shape(x)[1:]
-        f = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')(x)
-        g = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')(x)
-        h = conv(self.ch // 2, 1, strides=1, kernel_initializer='orthogonal')(x)
+        f = self.f(x)
+        g = self.g(x)
+        h = self.h(x)
 
-        # N = h * w * d
-        # [bs, N, N]
+        # N = h * w * d -- [bs, N, N]
         s = tf.matmul(self.hwd_flatten(g), self.hwd_flatten(f), transpose_b=True)
         beta = layers.Softmax()(s)  # attention map
         o = tf.matmul(beta, self.hwd_flatten(h))  # [bs, N, C]
 
         # [bs, h, w, C]
-        o = layers.Reshape((height, width, depth, num_channels // 2))(o)
-        # o = tf.reshape(o, shape=[batch_size, height, width, num_channels // 2])
-        o = conv(self.ch, 1, strides=1, kernel_initializer='orthogonal')(o)
-
+        height, width, depth, num_channels = K.int_shape(x)[1:]
+        o = layers.Reshape((height // 2, width // 2, depth // 2, num_channels // 2))(o)
+        o = self.v(o)
         x = self.gamma * o + x
 
         return x
