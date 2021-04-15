@@ -72,4 +72,3 @@ EPOCHS_PRINT = 5
 vae.compile(LEARNING_RATE)
 
 vae.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)
-

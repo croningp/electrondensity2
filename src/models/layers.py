@@ -109,7 +109,9 @@ class GoogleAttention(layers.Layer):
         """ from https://stackoverflow.com/a/50820539/515028 """
         # Create a trainable weight variable for this layer:
         self.gamma = self.add_weight(name='gamma', shape=[1],
-                                     initializer='uniform', trainable=True)
+                                     # initializer='uniform',
+                                     initializer=tf.keras.initializers.Constant(0),
+                                     trainable=True)
         # another possible init is tf.keras.initializers.Constant(0)
         # original paper uses initializer=tf.initializers.Zeros
 
@@ -118,20 +120,58 @@ class GoogleAttention(layers.Layer):
     def call(self, x):
 
         conv = layers.Conv3D  # just to simplify naming
-        batch_size, height, width, depth, num_channels = x.get_shape().as_list()
+        height, width, depth, num_channels = K.int_shape(x)[1:]
         f = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')(x)
         g = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')(x)
         h = conv(self.ch // 2, 1, strides=1, kernel_initializer='orthogonal')(x)
 
         # N = h * w * d
-        s = tf.matmul(self.hwd_flatten(g), self.hwd_flatten(f), transpose_b=True)  # [bs, N, N]
-
+        # [bs, N, N]
+        s = tf.matmul(self.hwd_flatten(g), self.hwd_flatten(f), transpose_b=True)
         beta = layers.Softmax()(s)  # attention map
-
         o = tf.matmul(beta, self.hwd_flatten(h))  # [bs, N, C]
 
-        o = tf.reshape(o, shape=[batch_size, height, width, num_channels // 2])  # [bs, h, w, C]
+        # [bs, h, w, C]
+        o = layers.Reshape((height, width, depth, num_channels // 2))(o)
+        # o = tf.reshape(o, shape=[batch_size, height, width, num_channels // 2])
         o = conv(self.ch, 1, strides=1, kernel_initializer='orthogonal')(o)
+
         x = self.gamma * o + x
 
         return x
+
+
+class TransformerBlock(layers.Layer):
+    """ Adapted from https://keras.io/examples/nlp/text_classification_with_transformer/
+    Using the attention defined above and Conv3D instead of dense layer.
+    """
+
+    def __init__(self,  channels, dense_factor=4, dropout=0.1):
+        super(TransformerBlock, self).__init__()
+
+        self.channels, self.df, self.dropout = channels, dense_factor, dropout
+
+        self.attention = GoogleAttention(self.channels)
+        self.dropout_attention = layers.Dropout(dropout)
+        self.add_attention = layers.Add()
+        self.layer_norm_attention = layers.LayerNormalization(epsilon=1e-6)
+
+        self.fcn = tf.keras.Sequential(
+            [layers.Conv3D(self.channels*self.df, 1, activation='relu'),
+             layers.Conv3D(self.channels, 1), ]
+        )
+        self.dropout_fcn = layers.Dropout(dropout)
+        self.layer_norm_fcn = layers.LayerNormalization(epsilon=1e-6)
+
+    def call(self, inputs, training=None):
+        attn_output = self.attention(inputs)
+        attn_output = self.dropout_attention(attn_output, training=training)
+        out1 = self.layer_norm_attention(inputs + attn_output)
+
+        # Feed Forward, that here we do with convs
+        fcn_output = self.fcn(out1)
+        fcn_output = self.dropout_fcn(fcn_output, training=training)
+        x = self.layer_norm_fcn(out1 + fcn_output)
+
+        return x
+
