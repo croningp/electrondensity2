@@ -10,11 +10,11 @@
 ##########################################################################################
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 from datetime import datetime
 
 from src.utils.TFRecordLoader import TFRecordLoader
-from src.models.VAE import VariationalAutoencoder
+from src.models.VAEresnet import VAEresnet
 
 # RUN PARAMS #############################################################################
 RUN_FOLDER = 'logs/vae/'
@@ -32,31 +32,34 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-04-11/'  # fill with the right date
 
-DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets
 path2tf = DATA_FOLDER + 'train.tfrecords'
 path2va = DATA_FOLDER + 'valid.tfrecords'
 # load train and validation sets
-tfr = TFRecordLoader(path2tf)
-tfr_va = TFRecordLoader(path2va)
+tfr = TFRecordLoader(path2tf, batch_size=32)
+tfr_va = TFRecordLoader(path2va, batch_size=32)
 
 # ARCHITECTURE ###########################################################################
 # create VAE model
-vae = VariationalAutoencoder(
+vae = VAEresnet(
     input_dim=tfr.ED_SHAPE,
-    encoder_conv_filters=[32, 64, 64, 128],
+    encoder_conv_filters=[16, 32, 64, 128],
     encoder_conv_kernel_size=[3, 3, 3, 3],
     encoder_conv_strides=[2, 2, 2, 2],
-    dec_conv_t_filters=[128, 128, 32, 1],
+    dec_conv_t_filters=[128, 64, 32, 16],
     dec_conv_t_kernel_size=[3, 3, 3, 3],
     dec_conv_t_strides=[2, 2, 2, 2],
-    z_dim=300,
+    z_dim=400,
     use_batch_norm=True,
     use_dropout=True,
-    r_loss_factor=10000
+    r_loss_factor=50000
     )
+
+print(vae.encoder.summary())
+print(vae.decoder.summary())
 
 if mode == 'build':
     vae.save(RUN_FOLDER)
@@ -72,4 +75,3 @@ EPOCHS_PRINT = 5
 vae.compile(LEARNING_RATE)
 
 vae.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)
-

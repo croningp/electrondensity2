@@ -3,6 +3,7 @@
 # This script is a sort of main file for the model in src.models.VAE.py, which is a
 # variational autoencoder. This script will aim to show to train it, and also to
 # save and load the model.
+# This file is modified to train in Dragonsoop
 #
 # Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
@@ -15,6 +16,7 @@ from src.utils.TFRecordLoader import TFRecordLoader
 from src.models.VAE import VariationalAutoencoder
 
 # RUN PARAMS #############################################################################
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 RUN_FOLDER = 'logs/vae/'
 mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
@@ -30,7 +32,7 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-04-11/'  # fill with the right date
 
-DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets
@@ -44,16 +46,16 @@ tfr_va = TFRecordLoader(path2va)
 # create VAE model
 vae = VariationalAutoencoder(
     input_dim=tfr.ED_SHAPE,
-    encoder_conv_filters=[32, 64, 64, 128],
+    encoder_conv_filters=[32, 64, 128, 256],
     encoder_conv_kernel_size=[3, 3, 3, 3],
     encoder_conv_strides=[2, 2, 2, 2],
-    dec_conv_t_filters=[128, 128, 32, 1],
-    dec_conv_t_kernel_size=[3, 3, 3, 3],
-    dec_conv_t_strides=[2, 2, 2, 2],
-    z_dim=300,
+    dec_conv_t_filters=[256, 128, 64, 32, 1],
+    dec_conv_t_kernel_size=[3, 3, 3, 3, 1],
+    dec_conv_t_strides=[2, 2, 2, 2, 1],
+    z_dim=400,
     use_batch_norm=True,
     use_dropout=True,
-    r_loss_factor=10000
+    r_loss_factor=50000
     )
 
 if mode == 'build':

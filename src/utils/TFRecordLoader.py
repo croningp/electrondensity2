@@ -31,12 +31,13 @@ class TFRecordLoader():
         self.get_dataset()  # this will set self.dataset
         self.dataset_iter = iter(self.dataset)
 
-    def parse_fn(self, serialized, properties=[]):
+    def parse_fn(self, serialized, properties=[], expand_dims=True):
         """Parse the serialized object. This is used in load_dataset, in the map function.
 
         Args:
             serialized: A tfrecord as generated from generate_dataset.py
             properties (list, optional): See "prop in properties" below. Defaults to [].
+            expand_dims (bool, optional): Expands to 4D. Defaults to True.
 
         Returns:
             (density, *properties): parsed tfrecord and the properties
@@ -57,7 +58,10 @@ class TFRecordLoader():
 
         parsed_example = tf.io.parse_single_example(serialized, features=features)
         density = parsed_example['density']
-        density = tf.expand_dims(density, axis=-1)
+
+        if expand_dims:
+            density = tf.expand_dims(density, axis=-1)
+
         properties = [parsed_example[p] for p in properties]
         return (density, *properties)
 
@@ -147,4 +151,3 @@ class TFRecordLoader():
         """
 
         return next(self.dataset_iter)
-        
