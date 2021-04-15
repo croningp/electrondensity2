@@ -3,14 +3,12 @@
 # This script is a sort of main file for the model in src.models.VAE.py, which is a
 # variational autoencoder. This script will aim to show to train it, and also to
 # save and load the model.
-# This script is tuned to be used in Dragonsoop!
 #
 # Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
 ##########################################################################################
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 from datetime import datetime
 
 from src.utils.TFRecordLoader import TFRecordLoader
