@@ -174,4 +174,3 @@ class TransformerBlock(layers.Layer):
         x = self.layer_norm_fcn(out1 + fcn_output)
 
         return x
-
