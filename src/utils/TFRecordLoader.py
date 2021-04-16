@@ -16,19 +16,20 @@ from functools import partial
 
 class TFRecordLoader():
 
-    def __init__(self, filename, batch_size=64, ed_shape=[64, 64, 64, 1]):
+    def __init__(self, filename, batch_size=64, ed_shape=[64, 64, 64, 1], train=False):
         """Create class and set basic parameters.
 
         Args:
             filename: Path to the tfrecord
             batch_size (int, optional): Defaults to 64.
             ed_shape (list, optional): Electron density shape. Defaults to [64,64,64,1].
+            train (bool, optional): Performs data augmentation.
         """
         self.filename = filename
         self.AUTOTUNE = tf.data.experimental.AUTOTUNE
         self.BATCH_SIZE = batch_size
         self.ED_SHAPE = ed_shape
-        self.get_dataset()  # this will set self.dataset
+        self.get_dataset(train)  # this will set self.dataset
         self.dataset_iter = iter(self.dataset)
 
     def parse_fn(self, serialized, properties=[], expand_dims=True):

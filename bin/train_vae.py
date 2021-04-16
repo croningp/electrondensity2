@@ -16,9 +16,9 @@ from src.utils.TFRecordLoader import TFRecordLoader
 from src.models.VAEresnet import VAEresnet
 
 # RUN PARAMS #############################################################################
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = '5'
 RUN_FOLDER = 'logs/vae/'
-mode = 'build'  # use 'build' to start train, 'load' to continue an old train
+mode = 'load'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -30,7 +30,7 @@ if mode == 'build':
         os.mkdir(os.path.join(RUN_FOLDER, 'edms'))
 
 else:  # mode == 'load'
-    RUN_FOLDER += '2021-04-11/'  # fill with the right date
+    RUN_FOLDER += '2021-04-13/'  # fill with the right date
 
 DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
 
@@ -67,11 +67,11 @@ else:
     vae.load_weights(os.path.join(RUN_FOLDER, 'weights/weights.h5'))
 
 # TRAINING ###############################################################################
-LEARNING_RATE = 0.0005
-EPOCHS = 1000
-INITIAL_EPOCH = 0
-EPOCHS_PRINT = 5
+# LEARNING_RATE = 0.0005
+# EPOCHS = 1000
+# INITIAL_EPOCH = 0
+# EPOCHS_PRINT = 5
 
-vae.compile(LEARNING_RATE)
+# vae.compile(LEARNING_RATE)
 
-vae.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)
+# vae.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)
