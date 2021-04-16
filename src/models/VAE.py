@@ -302,3 +302,37 @@ class VariationalAutoencoder():
                 pickle.dump([original_cubes, generated_cubes], pfile)
 
         return original_cubes, generated_cubes
+
+    def interpolation_two_molecules(
+        self, m1=None, m2=None, valid_dataset=None, steps=10, savepath=None
+    ):
+
+        # if molecules are not given, we will pick two at random from valid_dataset
+        if not m1:
+            m1 = valid_dataset.next()[0]
+            m2 = valid_dataset.next()[0]
+
+        # get their latent vector using the encoder
+        pd = self.model.preprocess_data # just to get a shorter name
+        _, _, l1 = self.encoder(pd(m1))
+        _, _, l2 = self.encoder(pd(m2))
+        l1 = l1[:1] # just get the first 2 so we don't need to move the whole batch
+        l2 = l2[:1]
+
+        # calculate interpolation steps
+        step = (l2-l1)/steps
+
+        generated_cubes = []
+
+        for i in range(steps+1):
+            mol = l1 + step*i
+            cubes = self.decoder(mol)
+            cubes = transform_back_ed(cubes).numpy() # just take 1
+            generated_cubes.extend(cubes)
+
+        if savepath is not None:
+            print('Electron densities saved to {}'.format(savepath))
+            with open(savepath, 'wb') as pfile:
+                pickle.dump(generated_cubes, pfile)
+
+        return generated_cubes
