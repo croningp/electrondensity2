@@ -327,8 +327,8 @@ class VariationalAutoencoder():
         for i in range(steps+1):
             mol = l1 + step*i
             cubes = self.decoder(mol)
-            cubes = transform_back_ed(cubes).numpy() # just take 1
-            generated_cubes.extend(cubes)
+            cubes = transform_back_ed(cubes).numpy()[0] # just take 1
+            generated_cubes.extend([cubes])
 
         if savepath is not None:
             print('Electron densities saved to {}'.format(savepath))
