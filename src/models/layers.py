@@ -174,8 +174,9 @@ class TransformerBlock(layers.Layer):
         self.layer_norm_attention = layers.LayerNormalization(epsilon=1e-6)
 
         self.fcn = tf.keras.Sequential(
-            [layers.Conv3D(self.channels*self.df, 1, activation='relu'),
-             layers.Conv3D(self.channels, 1), ]
+            [layers.Conv3D(self.channels*self.df, 3, 
+                activation='relu', padding='SAME'),
+                layers.Conv3D(self.channels, 3, padding='SAME'), ]
         )
         self.dropout_fcn = layers.Dropout(dropout)
         self.layer_norm_fcn = layers.LayerNormalization(epsilon=1e-6)
