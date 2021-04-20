@@ -16,7 +16,7 @@ from src.utils.TFRecordLoader import TFRecordLoader
 from src.models.VAEresnet import VAEresnet
 
 # RUN PARAMS #############################################################################
-os.environ["CUDA_VISIBLE_DEVICES"] = '5'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 RUN_FOLDER = 'logs/vae/'
 mode = 'load'  # use 'build' to start train, 'load' to continue an old train
 
@@ -67,11 +67,11 @@ else:
     vae.load_weights(os.path.join(RUN_FOLDER, 'weights/weights.h5'))
 
 # TRAINING ###############################################################################
-# LEARNING_RATE = 0.0005
-# EPOCHS = 1000
-# INITIAL_EPOCH = 0
-# EPOCHS_PRINT = 5
+LEARNING_RATE = 0.0005
+EPOCHS = 1000
+INITIAL_EPOCH = 146
+EPOCHS_PRINT = 5
 
-# vae.compile(LEARNING_RATE)
+vae.compile(LEARNING_RATE)
 
-# vae.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)
+vae.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)

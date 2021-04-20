@@ -108,27 +108,14 @@ class GoogleAttention(layers.Layer):
     def build(self, input_shape):
         conv = layers.Conv3D  # just to simplify naming
 
-        self.f = tf.keras.Sequential(
-            [conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal'),
-             layers.MaxPooling3D(), ]
-        )
-        self.g = tf.keras.Sequential(
-            [conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal'),
-             layers.MaxPooling3D(), ]
-        )
-        self.h = tf.keras.Sequential(
-            [conv(self.ch // 2, 1, strides=1, kernel_initializer='orthogonal'),
-             layers.MaxPooling3D(), ]
-        )
+
+        self.f = conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
+        self.g = conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
+        self.h = conv(self.ch // 2, 1, strides=2, kernel_initializer='orthogonal')
         self.v = tf.keras.Sequential(
             [layers.UpSampling3D(),
              conv(self.ch, 1, strides=1, kernel_initializer='orthogonal'), ]
         )
-
-        # self.f = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')
-        # self.g = conv(self.ch // 8, 1, strides=1, kernel_initializer='orthogonal')
-        # self.h = conv(self.ch // 2, 1, strides=1, kernel_initializer='orthogonal')
-        # self.v = conv(self.ch, 1, strides=1, kernel_initializer='orthogonal')
 
         # Create a trainable weight variable for this layer:
         self.gamma = self.add_weight(name='gamma', shape=[1],
@@ -171,7 +158,7 @@ class TransformerBlock(layers.Layer):
         self.attention = GoogleAttention(self.channels)
         self.dropout_attention = layers.Dropout(dropout)
         self.add_attention = layers.Add()
-        self.layer_norm_attention = layers.LayerNormalization(epsilon=1e-6)
+        self.bn_attention = layers.BatchNormalization()
 
         self.fcn = tf.keras.Sequential(
             [layers.Conv3D(self.channels*self.df, 3, 
@@ -179,16 +166,16 @@ class TransformerBlock(layers.Layer):
                 layers.Conv3D(self.channels, 3, padding='SAME'), ]
         )
         self.dropout_fcn = layers.Dropout(dropout)
-        self.layer_norm_fcn = layers.LayerNormalization(epsilon=1e-6)
+        self.bn_fcn = layers.BatchNormalization()
 
     def call(self, inputs, training=None):
         attn_output = self.attention(inputs)
         attn_output = self.dropout_attention(attn_output, training=training)
-        out1 = self.layer_norm_attention(inputs + attn_output)
+        out1 = self.bn_attention(inputs + attn_output)
 
         # Feed Forward, that here we do with convs
         fcn_output = self.fcn(out1)
         fcn_output = self.dropout_fcn(fcn_output, training=training)
-        x = self.layer_norm_fcn(out1 + fcn_output)
+        x = self.bn_fcn(out1 + fcn_output)
 
         return x

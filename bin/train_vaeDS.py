@@ -31,7 +31,7 @@ if mode == 'build':
         os.mkdir(os.path.join(RUN_FOLDER, 'edms'))
 
 else:  # mode == 'load'
-    RUN_FOLDER += '2021-04-15/'  # fill with the right date
+    RUN_FOLDER += '2021-04-18/'  # fill with the right date
 
 DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'
 
@@ -52,12 +52,12 @@ strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
     vae = VAEattention(
         input_dim=tfr.ED_SHAPE,
-        encoder_conv_filters=[32, 32, 64, 128],
+        encoder_conv_filters=[16, 16, 64, 128],
         encoder_conv_kernel_size=[3, 3, 3, 3],
-        encoder_conv_strides=[2, 2, 2, 2],
-        dec_conv_t_filters=[128, 64, 32, 32],
+        encoder_conv_strides=[2, 2, 2, 4],
+        dec_conv_t_filters=[128, 64, 16, 16],
         dec_conv_t_kernel_size=[3, 3, 3, 3],
-        dec_conv_t_strides=[2, 2, 2, 2],
+        dec_conv_t_strides=[3, 2, 2, 2],
         z_dim=400,
         use_batch_norm=True,
         use_dropout=True,

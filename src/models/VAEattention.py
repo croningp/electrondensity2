@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Input, Flatten, Dense, Reshape, UpSampling3D
+from tensorflow.keras.layers import Input, Flatten, Dense, Reshape, UpSampling3D, Conv3D
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 
@@ -37,13 +37,15 @@ class VAEattention(VariationalAutoencoder):
             fmaps = [filters//4, filters//4, filters]
             kernel_size = self.encoder_conv_kernel_size[i]
             strides = self.encoder_conv_strides[i]
-            # and create the residual blocks. I follow how resnet50 does it.
-            x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
-            # and attention, but we don't do it on first 2 iterations
-            if i>1:
-                # x = TransformerBlock(filters)(x)
-                x = Attention(filters)(x)
-            else:  # else we add an identity block like in resnet
+
+            if i == 0: # first iteration are a sort of pseudo-embedding
+                x = Conv3D(filters, kernel_size, strides=strides, padding='SAME', 
+                           kernel_initializer='orthogonal')(x)
+            if i < 2: # first 2 iterations add transformer block
+                x = TransformerBlock(filters)(x)
+            else: # for the others add convs
+                # and create the residual blocks. I follow how resnet50 does it.
+                x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
                 x = identity_block(x, kernel_size, fmaps, stage=i, block='b')
 
         shape_before_flattening = K.int_shape(x)[1:]
@@ -72,18 +74,21 @@ class VAEattention(VariationalAutoencoder):
             strides = self.decoder_conv_t_strides[i]
             stage = i+self.n_layers_encoder  # to get a number to continue naming
 
-            # in the decoder we will upsample instead of using conv strides to downsample
-            for j in range(strides-1):
-                x = UpSampling3D()(x)
-            
-            # create the residual block
-            x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
-            # now the attention block but we don't do it on last 2 iterations
-            if i < (self.n_layers_decoder - 2):
-                # x = TransformerBlock(filters)(x)
-                x = Attention(filters)(x)
-            else:  # else we add identity blocks like in resnet
+            if i < 2: # first 3 iterations just decode
+                for j in range(strides-1):
+                    x = UpSampling3D()(x)
+                # create the residual block
+                x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
                 x = identity_block(x, kernel_size, fmaps, stage=stage, block='b')
+            if i == 2:
+                x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
+            if i > 1: # last two iterations transformer blocks
+                x = TransformerBlock(filters)(x)
+
+            if i == (self.n_layers_decoder-1): # very last iteration last conv
+                x = UpSampling3D()(x)
+                x = Conv3D(filters, kernel_size, padding='SAME', 
+                           kernel_initializer='orthogonal')(x)
 
         # last one with 1 feature map
         x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)
