@@ -302,3 +302,97 @@ class VariationalAutoencoder():
                 pickle.dump([original_cubes, generated_cubes], pfile)
 
         return original_cubes, generated_cubes
+
+    def interpolation_two_molecules(
+        self, m1=None, m2=None, valid_dataset=None, steps=10, savepath=None
+    ):
+        """Given either m1 and m2 or valid_dataset, it will interpolate the latent
+        vectors and it will use the vae to generate the 3D volumes of the interpolation
+        steps. If m1 is not given then valid_dataset must be given, and then interpolation
+        will be random choosing a random batch to do the calculations.
+
+        Args:
+            m1 (optional): A batch of molecules from where to start interpolation.
+            m2 (optional): A batch of molecules to where to finish interpolation.
+            valid_dataset (optional): it must be a tfrecord, loaded with tfrecorloader
+            steps (int, optional): [description]. Number of iterpolation steps.
+            savepath: If given results will be pickled to this file.
+
+        Returns:
+            [type]: [description]
+        """
+
+        # if molecules are not given, we will pick two at random from valid_dataset
+        if not m1:
+            m1 = valid_dataset.next()[0]
+            m2 = valid_dataset.next()[0]
+
+        # get their latent vector using the encoder
+        pd = self.model.preprocess_data # just to get a shorter name
+        _, _, l1 = self.encoder(pd(m1))
+        _, _, l2 = self.encoder(pd(m2))
+        l1 = l1[:1] # just get the first 2 so we don't need to move the whole batch
+        l2 = l2[:1]
+
+        # calculate interpolation steps
+        step = (l2-l1)/steps
+
+        generated_cubes = []
+
+        for i in range(steps+1):
+            mol = l1 + step*i
+            cubes = self.decoder(mol)
+            cubes = transform_back_ed(cubes).numpy()[0] # just take 1
+            generated_cubes.extend([cubes])
+
+        if savepath is not None:
+            print('Electron densities saved to {}'.format(savepath))
+            with open(savepath, 'wb') as pfile:
+                pickle.dump(generated_cubes, pfile)
+
+        return generated_cubes
+
+    def substract_add_molecules(
+        self, m1=None, m2=None, valid_dataset=None, savepath=None
+    ):
+
+        # if molecules are not given, we will pick two at random from valid_dataset
+        if not m1:
+            m1 = valid_dataset.next()[0][:10]
+            m2 = valid_dataset.next()[0][:10]
+
+        # get their latent vector using the encoder
+        pd = self.model.preprocess_data # just to get a shorter name
+        _, _, l1 = self.encoder(pd(m1))
+        _, _, l2 = self.encoder(pd(m2))
+
+        # substract the electron density maps
+        subs = self.decoder(l1-l2)
+        # subs = self.decoder(np.minimum(l1,l2))
+        subs = transform_back_ed(subs).numpy()
+        gensubs = []
+        gensubs.extend(subs)
+        gensubs = np.array(gensubs)
+
+        # substract the electron density maps
+        adds = self.decoder(l1+l2)
+        # adds = self.decoder(np.maximum(l1,l2))
+        adds = transform_back_ed(adds).numpy()
+        genadds = []
+        genadds.extend(adds)
+        genadds = np.array(genadds)
+
+        # prepare the other 2 original batches
+        original_cubes1 = []
+        original_cubes1.extend(np.array(m1))
+        original_cubes1 = np.array(original_cubes1)
+        original_cubes2 = []
+        original_cubes2.extend(np.array(m2))
+        original_cubes2 = np.array(original_cubes2)
+
+        if savepath is not None:
+            print('Electron densities saved to {}'.format(savepath))
+            with open(savepath, 'wb') as pfile:
+                pickle.dump([original_cubes1, original_cubes2, genadds, gensubs], pfile)
+
+        return original_cubes1, original_cubes2, genadds, gensubs
