@@ -39,8 +39,7 @@ class VAEattention(VariationalAutoencoder):
             strides = self.encoder_conv_strides[i]
 
             if i == 0: # first iteration are a sort of pseudo-embedding
-                x = Conv3D(filters, kernel_size, strides=strides, padding='SAME', 
-                           kernel_initializer='orthogonal')(x)
+                x = Conv3D(filters, kernel_size, strides=strides, padding='SAME')(x)
             if i < 2: # first 2 iterations add transformer block
                 x = TransformerBlock(filters)(x)
             else: # for the others add convs
@@ -74,24 +73,24 @@ class VAEattention(VariationalAutoencoder):
             strides = self.decoder_conv_t_strides[i]
             stage = i+self.n_layers_encoder  # to get a number to continue naming
 
-            if i < 2: # first 3 iterations just decode
+            if i < 3: # first 3 iterations just decode
                 for j in range(strides-1):
                     x = UpSampling3D()(x)
                 # create the residual block
                 x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
                 x = identity_block(x, kernel_size, fmaps, stage=stage, block='b')
-            if i == 2:
+            if i == 3:
                 x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
-            if i > 1: # last two iterations transformer blocks
+            if i > 2: # last two iterations transformer blocks
                 x = TransformerBlock(filters)(x)
 
             if i == (self.n_layers_decoder-1): # very last iteration last conv
                 x = UpSampling3D()(x)
-                x = Conv3D(filters, kernel_size, padding='SAME', 
-                           kernel_initializer='orthogonal')(x)
+                x = Conv3D(filters, kernel_size, padding='SAME')(x)
 
         # last one with 1 feature map
-        x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)
+        x = Conv3D(1, kernel_size, padding='SAME')(x)
+        #x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)
 
         decoder_output = x
         self.decoder = Model(decoder_input, decoder_output, name='decoder')
