@@ -50,6 +50,7 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     x = layers.Activation('relu')(x)
     return x
 
+
 def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
     """A block that has a conv layer at shortcut.
     # Arguments
@@ -92,6 +93,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
     x = layers.Activation('relu')(x)
     return x
 
+
 def drop_dimension(input_tensor):
     """Given a 4D tensor it will return a 3D one, and given a 3D tensor it will return a
     2D one. I could just use reshape, but I decided to use conv to reduce channel to 1,
@@ -111,13 +113,42 @@ def drop_dimension(input_tensor):
         conv = layers.Conv2D
 
     # do a convolution with only 1 channel
-    channel1 = conv(1, kernel_size=3, padding='same', kernel_initializer='orthogonal')
+    channel1 = conv(1, kernel_size=3,
+                    padding='same', kernel_initializer='orthogonal')(input_tensor)
     # and squeeze it out
-    return tf.sequeeze(channel1, -1)
+    return tf.squeeze(channel1, -1)
+
+
+def add_dimension(input_tensor, filters=64):
+    """Given a 3D tensor it will return a 4D one, and given a 2D tensor it will return a
+    3D one. As I above with drop_dimension, instead of just expand_dims here, I will also
+    do a conv.
+
+    Args:
+        input_tensor: 3D or 2D tensor.
+        filters: the number of filters used in the post convolution.
+
+    Returns:
+        Tensor with one more dimension.
+    """
+
+    # decide type of convolutions depending on input tensor
+    if len(input_tensor.shape) > 3:
+        conv = layers.Conv3D
+    else:
+        conv = layers.Conv2D
+
+    # expand dimensions at the end
+    it = tf.expand_dims(input_tensor, -1)
+    # do a convolution with only 1 channel
+    cf = conv(filters, kernel_size=3, padding='same', kernel_initializer='orthogonal')(it)
+    return cf
+
 
 class Attention(layers.Layer):
     """ Adapted from SAGAN paper.
     Check this: https://github.com/taki0112/Self-Attention-GAN-Tensorflow/
+    It will use 3D or 2D convs depending on the input_shape.
     """
 
     def __init__(self, channels):
@@ -125,19 +156,23 @@ class Attention(layers.Layer):
         self.ch = channels
 
     def hwd_flatten(self, x):
-        """ From (h,w,d,c) to (h*w*d,c) """
+        """ From (h,w,d,c) to (h*w*d,c) if 4D or (h,w,c) to (h*w,c) if 3D"""
         s = K.int_shape(x)[1:]
         return layers.Reshape((-1, s[-1]))(x)
 
     def build(self, input_shape):
-        conv = layers.Conv3D  # just to simplify naming
+        # decide type of convolutions depending on input tensor
+        if len(input_shape) > 4:
+            self.conv = layers.Conv3D
+        else:
+            self.conv = layers.Conv2D
 
-        self.f = conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
-        self.g = conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
-        self.h = conv(self.ch // 2, 1, strides=2, kernel_initializer='orthogonal')
+        self.f = self.conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
+        self.g = self.conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
+        self.h = self.conv(self.ch // 2, 1, strides=2, kernel_initializer='orthogonal')
         self.v = tf.keras.Sequential(
             [layers.UpSampling3D(),
-             conv(self.ch, 1, strides=1, kernel_initializer='orthogonal'), ]
+             self.conv(self.ch, 1, strides=1, kernel_initializer='orthogonal'), ]
         )
 
         # Create a trainable weight variable for this layer:
@@ -159,9 +194,13 @@ class Attention(layers.Layer):
         beta = layers.Softmax()(s)  # attention map
         o = tf.matmul(beta, self.hwd_flatten(h))  # [bs, N, C]
 
-        # [bs, h, w, C]
-        height, width, depth, num_channels = K.int_shape(x)[1:]
-        o = layers.Reshape((height // 2, width // 2, depth // 2, num_channels // 2))(o)
+        if self.conv == layers.Conv3D:  # [bs, h, w, d, C]
+            height, width, depth, num_channels = K.int_shape(x)[1:]
+            o = layers.Reshape((height//2, width//2, depth//2, num_channels // 2))(o)
+        else:  # self.conv == layers.Conv2D [bs, h, w, C]
+            height, width, num_channels = K.int_shape(x)[1:]
+            o = layers.Reshape((height//2, width//2, num_channels // 2))(o)
+
         o = self.v(o)
         x = self.gamma * o + x
 
@@ -182,14 +221,20 @@ class TransformerBlock(layers.Layer):
         self.dropout_attention = layers.Dropout(dropout)
         self.add_attention = layers.Add()
         self.bn_attention = layers.BatchNormalization()
-
-        self.fcn = tf.keras.Sequential(
-            [layers.Conv3D(self.channels*self.df, 1, 
-                activation='relu', padding='SAME'),
-                layers.Conv3D(self.channels, 1, padding='SAME'), ]
-        )
         self.dropout_fcn = layers.Dropout(dropout)
         self.bn_fcn = layers.BatchNormalization()
+
+    def build(self, input_shape):
+        # decide type of convolutions depending on input tensor
+        if len(input_shape) > 4:
+            self.conv = layers.Conv3D
+        else:
+            self.conv = layers.Conv2D
+
+        self.fcn = tf.keras.Sequential(
+            [self.conv(self.channels*self.df, 1, activation='relu', padding='SAME'),
+             self.conv(self.channels, 1, padding='SAME'), ]
+        )
 
     def call(self, inputs, training=None):
         attn_output = self.attention(inputs)
