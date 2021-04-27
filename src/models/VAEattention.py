@@ -6,7 +6,7 @@ import numpy as np
 
 from src.models.VAE import VariationalAutoencoder, Sampling, VAEModel
 from src.models.layers import conv_block, identity_block, TransformerBlock
-from src.models.layers import GoogleAttention as Attention
+from src.models.layers import Attention
 
 
 class VAEattention(VariationalAutoencoder):
