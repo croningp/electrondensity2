@@ -50,7 +50,6 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     x = layers.Activation('relu')(x)
     return x
 
-
 def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
     """A block that has a conv layer at shortcut.
     # Arguments
@@ -93,11 +92,36 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
     x = layers.Activation('relu')(x)
     return x
 
+def drop_dimension(input_tensor):
+    """Given a 4D tensor it will return a 3D one, and given a 3D tensor it will return a
+    2D one. I could just use reshape, but I decided to use conv to reduce channel to 1,
+    and then squeeze.
 
-class GoogleAttention(layers.Layer):
+    Args:
+        input_tensor: 4D or 3D tensor.
+
+    Returns:
+        Tensor with one less dimension.
+    """
+
+    # decide type of convolutions depending on input tensor
+    if len(input_tensor.shape) > 4:
+        conv = layers.Conv3D
+    else:
+        conv = layers.Conv2D
+
+    # do a convolution with only 1 channel
+    channel1 = conv(1, kernel_size=3, padding='same', kernel_initializer='orthogonal')
+    # and squeeze it out
+    return tf.sequeeze(channel1, -1)
+
+class Attention(layers.Layer):
+    """ Adapted from SAGAN paper.
+    Check this: https://github.com/taki0112/Self-Attention-GAN-Tensorflow/
+    """
 
     def __init__(self, channels):
-        super(GoogleAttention, self).__init__()
+        super(Attention, self).__init__()
         self.ch = channels
 
     def hwd_flatten(self, x):
@@ -107,7 +131,6 @@ class GoogleAttention(layers.Layer):
 
     def build(self, input_shape):
         conv = layers.Conv3D  # just to simplify naming
-
 
         self.f = conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
         self.g = conv(self.ch // 8, 1, strides=2, kernel_initializer='orthogonal')
@@ -123,7 +146,7 @@ class GoogleAttention(layers.Layer):
                                      initializer=tf.keras.initializers.Constant(0),
                                      trainable=True)
 
-        super(GoogleAttention, self).build(input_shape)
+        super(Attention, self).build(input_shape)
 
     def call(self, x):
 
@@ -155,15 +178,15 @@ class TransformerBlock(layers.Layer):
 
         self.channels, self.df, self.dropout = channels, dense_factor, dropout
 
-        self.attention = GoogleAttention(self.channels)
+        self.attention = Attention(self.channels)
         self.dropout_attention = layers.Dropout(dropout)
         self.add_attention = layers.Add()
         self.bn_attention = layers.BatchNormalization()
 
         self.fcn = tf.keras.Sequential(
-            [layers.Conv3D(self.channels*self.df, 3, 
+            [layers.Conv3D(self.channels*self.df, 1, 
                 activation='relu', padding='SAME'),
-                layers.Conv3D(self.channels, 3, padding='SAME'), ]
+                layers.Conv3D(self.channels, 1, padding='SAME'), ]
         )
         self.dropout_fcn = layers.Dropout(dropout)
         self.bn_fcn = layers.BatchNormalization()
