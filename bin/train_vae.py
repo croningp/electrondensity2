@@ -11,14 +11,15 @@
 
 import os
 from datetime import datetime
+import tensorflow as tf
 
 from src.utils.TFRecordLoader import TFRecordLoader
-from src.models.VAEresnet import VAEresnet
+from src.models.VAEattention import VAEattention
 
 # RUN PARAMS #############################################################################
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 RUN_FOLDER = 'logs/vae/'
-mode = 'load'  # use 'build' to start train, 'load' to continue an old train
+mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -44,19 +45,24 @@ tfr_va = TFRecordLoader(path2va, batch_size=32)
 
 # ARCHITECTURE ###########################################################################
 # create VAE model
-vae = VAEresnet(
-    input_dim=tfr.ED_SHAPE,
-    encoder_conv_filters=[16, 32, 64, 128],
-    encoder_conv_kernel_size=[3, 3, 3, 3],
-    encoder_conv_strides=[2, 2, 2, 2],
-    dec_conv_t_filters=[128, 64, 32, 16],
-    dec_conv_t_kernel_size=[3, 3, 3, 3],
-    dec_conv_t_strides=[2, 2, 2, 2],
-    z_dim=400,
-    use_batch_norm=True,
-    use_dropout=True,
-    r_loss_factor=50000
-    )
+
+# Create a MirroredStrategy.
+strategy = tf.distribute.MirroredStrategy()
+
+with strategy.scope():
+    vae = VAEattention(
+        input_dim=tfr.ED_SHAPE,
+        encoder_conv_filters=[16, 32, 64, 64],
+        encoder_conv_kernel_size=[3, 3, 3, 3],
+        encoder_conv_strides=[1, 1, 1, 1],
+        dec_conv_t_filters=[64, 64, 32, 16],
+        dec_conv_t_kernel_size=[3, 3, 3, 3],
+        dec_conv_t_strides=[1, 1, 1, 1],
+        z_dim=200,
+        use_batch_norm=True,
+        use_dropout=True,
+        r_loss_factor=50000
+        )
 
 print(vae.encoder.summary())
 print(vae.decoder.summary())
@@ -69,7 +75,7 @@ else:
 # TRAINING ###############################################################################
 LEARNING_RATE = 0.0005
 EPOCHS = 1000
-INITIAL_EPOCH = 146
+INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
 
 vae.compile(LEARNING_RATE)
