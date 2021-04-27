@@ -53,7 +53,7 @@ if __name__ == "__main__":
         for i in range(args.render):
             output.view_with_mayavi(grid.x, grid.y, grid.z, orig[i, :, :, :, 0])
             output.view_with_mayavi(grid.x, grid.y, grid.z, gene[i, :, :, :, 0])
-    
+
     elif len(cubes) == 4:
         for i in range(args.render):
             output.view_with_mayavi(grid.x, grid.y, grid.z, cubes[0][i, :, :, :, 0])

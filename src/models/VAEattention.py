@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Input, Flatten, Dense, Reshape, UpSampling3D, Conv3D
+from tensorflow.keras.layers import Input, Flatten, Dense, Reshape, UpSampling3D
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 
@@ -6,7 +6,7 @@ import numpy as np
 
 from src.models.VAE import VariationalAutoencoder, Sampling, VAEModel
 from src.models.layers import conv_block, identity_block, TransformerBlock
-from src.models.layers import Attention
+from src.models.layers import drop_dimension, add_dimension
 
 
 class VAEattention(VariationalAutoencoder):
@@ -47,6 +47,10 @@ class VAEattention(VariationalAutoencoder):
             x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
             x = identity_block(x, kernel_size, fmaps, stage=i, block='b')
 
+            # last 2 layers, reduce dimensions
+            if i >= (self.n_layers_encoder-2):
+                x = drop_dimension(x)
+
         shape_before_flattening = K.int_shape(x)[1:]
 
         x = Flatten()(x)
@@ -59,7 +63,7 @@ class VAEattention(VariationalAutoencoder):
             encoder_input, [self.mu, self.log_var, self.z], name='encoder'
             )
 
-        # # THE DECODER
+        # # # THE DECODER
         decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
 
         x = Dense(np.prod(shape_before_flattening))(decoder_input)
@@ -73,6 +77,11 @@ class VAEattention(VariationalAutoencoder):
             strides = self.decoder_conv_t_strides[i]
             stage = i+self.n_layers_encoder  # to get a number to continue naming
 
+            # resize to 64,64,64,filters
+            if i == 0:
+                x = add_dimension(x)
+                x = add_dimension(x, filters)
+
             for j in range(strides-1):
                 x = UpSampling3D()(x)
 
@@ -80,9 +89,9 @@ class VAEattention(VariationalAutoencoder):
             x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
             x = identity_block(x, kernel_size, fmaps, stage=stage, block='b')
 
-            if i == 0:
-                x = TransformerBlock(filters)(x)
-                x = TransformerBlock(filters)(x)
+            # if i == 0:
+            #     x = TransformerBlock(filters)(x)
+            #     x = TransformerBlock(filters)(x)
 
         # last one with 1 feature map
         x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)
