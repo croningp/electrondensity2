@@ -16,7 +16,8 @@ from functools import partial
 
 class TFRecordLoader():
 
-    def __init__(self, filename, batch_size=64, ed_shape=[64, 64, 64, 1], train=False):
+    def __init__(self, filename, batch_size=64, ed_shape=[64, 64, 64, 1],
+                 train=False, properties=[]):
         """Create class and set basic parameters.
 
         Args:
@@ -24,12 +25,14 @@ class TFRecordLoader():
             batch_size (int, optional): Defaults to 64.
             ed_shape (list, optional): Electron density shape. Defaults to [64,64,64,1].
             train (bool, optional): Performs data augmentation.
+            properties (list, optional): Check the properties to fetch as defined in 
+                parse_fn
         """
         self.filename = filename
         self.AUTOTUNE = tf.data.experimental.AUTOTUNE
         self.BATCH_SIZE = batch_size
         self.ED_SHAPE = ed_shape
-        self.get_dataset(train)  # this will set self.dataset
+        self.get_dataset(train, properties)  # this will set self.dataset
         self.dataset_iter = iter(self.dataset)
 
     def parse_fn(self, serialized, properties=[], expand_dims=True):
@@ -44,7 +47,8 @@ class TFRecordLoader():
             (density, *properties): parsed tfrecord and the properties
         """
 
-        features = {'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32), }
+        features = {'density': tf.io.FixedLenFeature(
+            [64, 64, 64], tf.float32), }
         for prop in properties:
             if prop == 'num_atoms':
                 features[prop] = tf.io.FixedLenFeature([1], tf.int64)
@@ -57,7 +61,8 @@ class TFRecordLoader():
             else:
                 features[prop] = tf.io.FixedLenFeature([1], tf.float32)
 
-        parsed_example = tf.io.parse_single_example(serialized, features=features)
+        parsed_example = tf.io.parse_single_example(
+            serialized, features=features)
         density = parsed_example['density']
 
         if expand_dims:
@@ -85,7 +90,8 @@ class TFRecordLoader():
             mirror_cond = tf.less(uniform_random, 0.5)
 
             electron_density = tf.cond(
-                mirror_cond, lambda: tf.reverse(electron_density, [flip_index]),
+                mirror_cond, lambda: tf.reverse(
+                    electron_density, [flip_index]),
                 lambda: electron_density)
 
         # random rotation
