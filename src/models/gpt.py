@@ -4,7 +4,9 @@
 # Heavily based on the following tutorials:
 # https://keras.io/examples/generative/text_generation_with_miniature_gpt
 # https://keras.io/examples/audio/transformer_asr/
-# Smiles will be inputted as pre-processed by Jarek
+# Smiles will be inputted as pre-processed by Jarek.
+# I am not adding comments to most of the stuff that is directly copy-pasted. Check the
+# tutorials above and then you will easily understand it.
 #
 # Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
