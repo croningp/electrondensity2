@@ -1,3 +1,15 @@
+##########################################################################################
+#
+# This model builds from the VAE class, it only changes the build method to add
+# self-attention layers (in the form of TransformerBlocks).
+# It worked OK as a normal VAE with trasformer blocks. Last iteration what I have tried to
+# do was reducing the dimensionality from 4D to 2D, because that's the shape of the
+# self-attention that the smiles decoder will need.
+#
+# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+#
+##########################################################################################
+
 from tensorflow.keras.layers import Input, Flatten, Dense, Reshape, UpSampling3D
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
