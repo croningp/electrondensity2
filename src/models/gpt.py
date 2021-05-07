@@ -15,6 +15,12 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras.callbacks import ModelCheckpoint
+
+import os
+import pickle
+
+from src.utils.callbacks import DisplayOutputs
 
 
 class TransformerBlock(layers.Layer):
@@ -88,6 +94,15 @@ class GPT(keras.Model):
     ):
         super().__init__()
 
+        self.loss_metric = keras.metrics.Mean(name="loss")
+
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.feed_forward_dim = feed_forward_dim
+        self.num_trans_blocks = num_trans_blocks
+        self.vocab_size = vocab_size
+        self.maxlen = maxlen
+
         self.embedding_layer = TokenAndPositionEmbedding(
             maxlen=maxlen, vocab_size=vocab_size, embed_dim=embed_dim
         )
@@ -101,6 +116,13 @@ class GPT(keras.Model):
 
         self.classifier = layers.Dense(vocab_size)
 
+    def compile_model(self, learning_rate):
+        loss_fn = tf.keras.losses.CategoricalCrossentropy(
+            from_logits=True, label_smoothing=0.1,
+        )
+        optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+        self.compile(optimizer=optimizer, loss=loss_fn)
+
     def call(self, inputs):
         x = self.embedding_layer(inputs)
         x = self.tblocks(x)
@@ -110,14 +132,35 @@ class GPT(keras.Model):
     def metrics(self):
         return [self.loss_metric]
 
+    def save_build(self, folder):
+        """Saves the config before the training starts. The model itself will be saved
+        later on using keras checkpoints.
+
+        Args:
+            folder: Where to save the config parameters
+        """
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+            os.makedirs(os.path.join(folder, 'weights'))
+
+        with open(os.path.join(folder, 'params.pkl'), 'wb') as f:
+            pickle.dump([
+                self.embed_dim,
+                self.num_heads,
+                self.feed_forward_dim,
+                self.num_trans_blocks,
+                self.vocab_size,
+                self.maxlen,
+            ], f)
+
     def train_step(self, batch):
         """Processes one batch inside model.fit()."""
-        source = batch["source"]
+        source = batch[1]  # [0] are densities which we don't here. [1] are token smiles
         source_input = source[:, :-1]
         source_target = source[:, 1:]
         with tf.GradientTape() as tape:
             preds = self(source_input)
-            one_hot = tf.one_hot(source_target, depth=self.num_classes)
+            one_hot = tf.one_hot(source_target, depth=self.vocab_size)
             mask = tf.math.logical_not(tf.math.equal(source_target, 0))
             loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
         trainable_vars = self.trainable_variables
@@ -127,15 +170,55 @@ class GPT(keras.Model):
         return {"loss": self.loss_metric.result()}
 
     def test_step(self, batch):
-        source = batch["source"]
+        # [0] are densities which we don't here. [1] are token smiles
+        source = batch[1]
         source_input = source[:, :-1]
         source_target = source[:, 1:]
         preds = self(source_input)
-        one_hot = tf.one_hot(source_target, depth=self.num_classes)
+        one_hot = tf.one_hot(source_target, depth=self.vocab_size)
         mask = tf.math.logical_not(tf.math.equal(source_target, 0))
         loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
         self.loss_metric.update_state(loss)
         return {"loss": self.loss_metric.result()}
 
+    def generate(self, source, target_start_token_idx=30, startid=0):
+        """Performs inference over one batch of inputs using greedy decoding."""
+        bs = tf.shape(source)[0]
 
-def create_train_model():
+        if startid == 0:
+            gpt_input = tf.ones((bs, 1), dtype=tf.int32) * target_start_token_idx
+        else:
+            gpt_input = tf.cast(source[:,:startid], dtype=tf.int32)
+
+        gpt_logits = []
+        for _ in range(self.maxlen - startid - 1):
+            logits = self(gpt_input)
+            logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            last_logit = tf.expand_dims(logits[:, -1], axis=-1)
+            gpt_logits.append(last_logit)
+            gpt_input = tf.concat([gpt_input, last_logit], axis=-1)
+        return gpt_input
+
+    def train(
+        self, train_dataset, valid_dataset, epochs, run_folder, tokenizer,
+        initial_epoch=0, print_every_n_epochs=1, lr_decay=1
+    ):
+
+        display_cb = DisplayOutputs(
+            next(valid_dataset.dataset_iter), tokenizer.num2token,
+        ) 
+
+        checkpoint_filepath = os.path.join(
+            run_folder, "weights/weights-{epoch:03d}-{loss:.2f}.h5")
+        checkpoint1 = ModelCheckpoint(
+            checkpoint_filepath, save_weights_only=True)
+        checkpoint2 = ModelCheckpoint(
+            os.path.join(run_folder, 'weights/weights.h5'),
+            save_weights_only=True)
+
+        callbacks_list = [checkpoint1, checkpoint2, display_cb]
+
+        self.fit(
+            train_dataset.dataset, validation_data=valid_dataset.dataset,
+            epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
+        )

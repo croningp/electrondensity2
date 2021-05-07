@@ -35,24 +35,19 @@ class TFRecordLoader():
         self.get_dataset(train, properties)  # this will set self.dataset
         self.dataset_iter = iter(self.dataset)
 
-    def parse_fn(self, serialized, properties=[], expand_dims=True, density=True):
+    def parse_fn(self, serialized, properties=[], expand_dims=True):
         """Parse the serialized object. This is used in load_dataset, in the map function.
 
         Args:
             serialized: A tfrecord as generated from generate_dataset.py
             properties (list, optional): See "prop in properties" below. Defaults to [].
             expand_dims (bool, optional): Expands to 4D. Defaults to True.
-            density (bool, optional): By default jarek included the densities, but in
-                the smiles gpt case I don't need them, so I will not include them.
 
         Returns:
             (density, *properties): parsed tfrecord and the properties
         """
 
-        if density:
-            features = {'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32), }
-        else:
-            features = {}
+        features = {'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32), }
 
         for prop in properties:
             if prop == 'num_atoms':
