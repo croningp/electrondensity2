@@ -187,7 +187,7 @@ class GPT(keras.Model):
         source_target = source[:, 1:]
         preds = self(source_input)
         one_hot = tf.one_hot(source_target, depth=self.vocab_size)
-        mask = tf.math.logical_not(tf.math.equal(source_target, 0))
+        mask = tf.math.logical_not(tf.math.equal(source_target, 32))  # 32 is NULL
         loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
         self.loss_metric.update_state(loss)
         return {"loss": self.loss_metric.result()}

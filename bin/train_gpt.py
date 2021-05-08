@@ -44,7 +44,7 @@ gpt = GPT(
         embed_dim=256,
         num_heads=2,
         feed_forward_dim=512,
-        num_trans_blocks=9,
+        num_trans_blocks=2,
         )
 gpt.build(next(tfr_va.dataset_iter)[1].shape)
 gpt.summary()
