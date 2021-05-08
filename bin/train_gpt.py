@@ -40,7 +40,14 @@ tokenizer.load_from_config(path2to)
 
 # ARCHITECTURE ###########################################################################
 # create GPT model
-gpt = GPT()
+gpt = GPT(
+        embed_dim=256,
+        num_heads=2,
+        feed_forward_dim=512,
+        num_trans_blocks=9,
+        )
+gpt.build(next(tfr_va.dataset_iter)[1].shape)
+gpt.summary()
 
 if mode == 'build':
     gpt.save_build(RUN_FOLDER)
@@ -53,6 +60,6 @@ EPOCHS = 1000
 INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
 
-gpt.compile_model(LEARNING_RATE)
+gpt.compile_model()
 
-gpt.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
+gpt.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)

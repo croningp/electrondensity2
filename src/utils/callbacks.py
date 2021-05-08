@@ -1,4 +1,6 @@
+import tensorflow as tf
 from tensorflow.keras.callbacks import Callback, LearningRateScheduler
+from tensorflow.keras.optimizers.schedules import LearningRateSchedule
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -45,7 +47,7 @@ class DisplayOutputs(Callback):
         source = self.batch[1][:3]
         target = source.numpy()
         bs = source.shape[0]
-        preds = self.model.generate(source, self.target_start_token_idx, 7)
+        preds = self.model.generate(source, self.target_start_token_idx, 10)
         preds = preds.numpy()
         for i in range(bs):
             target_text = "".join([self.idx_to_char[str(t)] for t in target[i, :]])
@@ -58,7 +60,6 @@ class DisplayOutputs(Callback):
             print(f"prediction: {prediction}\n")
 
 
-
 def step_decay_schedule(initial_lr, decay_factor=0.5, step_size=1):
     '''
     Wrapper function to create a LearningRateScheduler with step decay schedule.
@@ -69,3 +70,41 @@ def step_decay_schedule(initial_lr, decay_factor=0.5, step_size=1):
         return new_lr
 
     return LearningRateScheduler(schedule)
+
+
+class CustomSchedule(LearningRateSchedule):
+    def __init__(
+        self,
+        init_lr=0.000001,
+        lr_after_warmup=0.00005,
+        final_lr=0.000001,
+        warmup_epochs=15,
+        decay_epochs=85,
+        steps_per_epoch=203,
+    ):
+        super().__init__()
+        self.init_lr = init_lr
+        self.lr_after_warmup = lr_after_warmup
+        self.final_lr = final_lr
+        self.warmup_epochs = warmup_epochs
+        self.decay_epochs = decay_epochs
+        self.steps_per_epoch = steps_per_epoch
+
+    def calculate_lr(self, epoch):
+        """ linear warm up - linear decay """
+        warmup_lr = (
+            self.init_lr
+            + ((self.lr_after_warmup - self.init_lr) / (self.warmup_epochs - 1)) * epoch
+        )
+        decay_lr = tf.math.maximum(
+            self.final_lr,
+            self.lr_after_warmup
+            - (epoch - self.warmup_epochs)
+            * (self.lr_after_warmup - self.final_lr)
+            / (self.decay_epochs),
+        )
+        return tf.math.minimum(warmup_lr, decay_lr)
+
+    def __call__(self, step):
+        epoch = step // self.steps_per_epoch
+        return self.calculate_lr(epoch)

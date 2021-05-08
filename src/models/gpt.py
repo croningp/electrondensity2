@@ -20,15 +20,15 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 import os
 import pickle
 
-from src.utils.callbacks import DisplayOutputs
+from src.utils.callbacks import DisplayOutputs, CustomSchedule
 
 
 class TransformerBlock(layers.Layer):
-    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
+    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.3):
         super(TransformerBlock, self).__init__()
         self.att = layers.MultiHeadAttention(num_heads, embed_dim)
         self.ffn = keras.Sequential(
-            [layers.Dense(ff_dim, activation="relu"),
+            [layers.Dense(ff_dim, activation="gelu"),
              layers.Dense(embed_dim), ]
         )
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
@@ -87,8 +87,8 @@ class GPT(keras.Model):
         self,
         embed_dim=256,
         num_heads=2,
-        feed_forward_dim=128,
-        num_trans_blocks=2,
+        feed_forward_dim=512,
+        num_trans_blocks=1,
         vocab_size=33,  # There are 33 different smiles tokens
         maxlen=24,  # max len of the smiles strings is 24, as set by Jarek
     ):
@@ -116,10 +116,21 @@ class GPT(keras.Model):
 
         self.classifier = layers.Dense(vocab_size)
 
-    def compile_model(self, learning_rate):
-        loss_fn = tf.keras.losses.CategoricalCrossentropy(
-            from_logits=True, label_smoothing=0.1,
+    def compile_model(self):
+
+        learning_rate = CustomSchedule(
+            init_lr=0.000001,
+            lr_after_warmup=0.0001,
+            final_lr=0.000001,
+            warmup_epochs=15,
+            decay_epochs=85,
+            steps_per_epoch=1882,  # calculated beforehand, going through iter takes time
         )
+
+        loss_fn = tf.keras.losses.CategoricalCrossentropy(
+            from_logits=True, label_smoothing=0.0,
+        )
+
         optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
         self.compile(optimizer=optimizer, loss=loss_fn)
 
@@ -161,7 +172,7 @@ class GPT(keras.Model):
         with tf.GradientTape() as tape:
             preds = self(source_input)
             one_hot = tf.one_hot(source_target, depth=self.vocab_size)
-            mask = tf.math.logical_not(tf.math.equal(source_target, 0))
+            mask = tf.math.logical_not(tf.math.equal(source_target, 32))  # 32 is NULL
             loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
@@ -201,12 +212,12 @@ class GPT(keras.Model):
 
     def train(
         self, train_dataset, valid_dataset, epochs, run_folder, tokenizer,
-        initial_epoch=0, print_every_n_epochs=1, lr_decay=1
+        initial_epoch=0, print_every_n_epochs=1
     ):
 
         display_cb = DisplayOutputs(
             next(valid_dataset.dataset_iter), tokenizer.num2token,
-        ) 
+        )
 
         checkpoint_filepath = os.path.join(
             run_folder, "weights/weights-{epoch:03d}-{loss:.2f}.h5")
