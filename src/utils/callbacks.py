@@ -40,24 +40,31 @@ class DisplayOutputs(Callback):
         self.target_start_token_idx = target_start_token_idx
         self.target_end_token_idx = target_end_token_idx
         self.idx_to_char = idx_to_token
+        self.genfrom = 10
 
     def on_epoch_end(self, epoch, logs=None):
         # if epoch % 5 != 0:
         #     return
-        source = self.batch[1][:3]
+        source = self.batch[1][:5]
         target = source.numpy()
         bs = source.shape[0]
-        preds = self.model.generate(source, self.target_start_token_idx, 10)
+        preds = self.model.generate(source, self.target_start_token_idx, self.genfrom)
         preds = preds.numpy()
         for i in range(bs):
-            target_text = "".join([self.idx_to_char[str(t)] for t in target[i, :]])
+            target_text = "".join([self.idx_to_char[str(t)] for t in target[i, 1:]])
+            #target_text = self.tokenizer.decode_smiles(target[i, :])
+            #prediction = self.tokenizer.decode_smiles(preds[i, :])
             prediction = ""
-            for idx in preds[i, :]:
+            for idx in preds[i, 1:]:
                 prediction += self.idx_to_char[str(idx)]
                 if idx == self.target_end_token_idx:
                     break
-            print(f"target:     {target_text}")
-            print(f"prediction: {prediction}\n")
+            # add white space to make more obvious seed and prediction
+            pos = self.genfrom - 1 
+            target_text = target_text[:pos] + ' ' + target_text[pos:]
+            prediction = prediction[:pos] + ' ' + prediction[pos:]
+            print(f"target:     {target_text.replace('NULL','').replace('STOP','')}")
+            print(f"prediction: {prediction.replace('STOP','')}\n")
 
 
 def step_decay_schedule(initial_lr, decay_factor=0.5, step_size=1):
