@@ -18,6 +18,7 @@ if mode == 'build':
     if not os.path.exists(RUN_FOLDER):
         os.mkdir(RUN_FOLDER)
         os.mkdir(os.path.join(RUN_FOLDER, 'weights'))
+        os.mkdir(os.path.join(RUN_FOLDER, 'smiles'))
 
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-07/'  # fill with the right date
@@ -29,8 +30,8 @@ DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
 path2tf = DATA_FOLDER + 'train.tfrecords'
 path2va = DATA_FOLDER + 'valid.tfrecords'
 # load train and validation sets
-tfr = TFRecordLoader(path2tf, batch_size=128, properties=['smiles'])
-tfr_va = TFRecordLoader(path2va, batch_size=128, properties=['smiles'])
+tfr = TFRecordLoader(path2tf, batch_size=64, properties=['smiles'])
+tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['smiles'])
 
 # path to smiles tokenizer
 path2to = DATA_FOLDER + 'tokenizer.json'
@@ -41,10 +42,10 @@ tokenizer.load_from_config(path2to)
 # ARCHITECTURE ###########################################################################
 # create GPT model
 gpt = GPT(
-        embed_dim=512,
-        num_heads=4,
-        feed_forward_dim=1024,
-        num_trans_blocks=1,
+        embed_dim=64,
+        num_heads=2,
+        feed_forward_dim=256,
+        num_trans_blocks=4,
         )
 gpt.build(next(tfr_va.dataset_iter)[1].shape)
 gpt.summary()
@@ -55,11 +56,10 @@ else:
     gpt.load_weights(os.path.join(RUN_FOLDER, 'weights/weights.h5'))
 
 # TRAINING ###############################################################################
-LEARNING_RATE = 0.001
 EPOCHS = 1000
 INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
 
 gpt.compile_model()
 
-gpt.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
+gpt.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)

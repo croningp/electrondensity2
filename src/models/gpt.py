@@ -119,11 +119,11 @@ class GPT(keras.Model):
     def compile_model(self):
 
         learning_rate = CustomSchedule(
-            init_lr=0.000001,
-            lr_after_warmup=0.0001,
-            final_lr=0.000001,
-            warmup_epochs=15,
-            decay_epochs=85,
+            init_lr=0.0001,
+            lr_after_warmup=0.0005,
+            final_lr=0.0001,
+            warmup_epochs=100,
+            decay_epochs=500,
             steps_per_epoch=1882,  # calculated beforehand, going through iter takes time
         )
 
@@ -216,11 +216,11 @@ class GPT(keras.Model):
     ):
 
         display_cb = DisplayOutputs(
-            next(valid_dataset.dataset_iter), tokenizer.num2token,
+            next(valid_dataset.dataset_iter), tokenizer.num2token, run_folder=run_folder,
         )
 
         checkpoint_filepath = os.path.join(
-            run_folder, "weights/weights-{epoch:03d}-{loss:.2f}-{val_loss:.2f}.h5")
+            run_folder, "weights/weights-{epoch:03d}-{loss:.3f}-{val_loss:.3f}.h5")
         checkpoint1 = ModelCheckpoint(
             checkpoint_filepath, save_weights_only=True)
         checkpoint2 = ModelCheckpoint(
