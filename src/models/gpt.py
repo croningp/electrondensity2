@@ -128,7 +128,7 @@ class GPT(keras.Model):
         )
 
         loss_fn = tf.keras.losses.CategoricalCrossentropy(
-            from_logits=True, label_smoothing=0.0,
+            from_logits=True, label_smoothing=0.1,
         )
 
         optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
