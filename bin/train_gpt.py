@@ -44,8 +44,8 @@ tokenizer.load_from_config(path2to)
 gpt = GPT(
         embed_dim=64,
         num_heads=2,
-        feed_forward_dim=256,
-        num_trans_blocks=4,
+        feed_forward_dim=128,
+        num_trans_blocks=6,
         )
 gpt.build(next(tfr_va.dataset_iter)[1].shape)
 gpt.summary()
