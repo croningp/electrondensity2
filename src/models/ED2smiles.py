@@ -13,14 +13,14 @@
 
 
 import os
-import random
-from glob import glob
+import pickle
 import tensorflow as tf
-from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras.callbacks import ModelCheckpoint
 
 from src.utils import transform_ed
-from src.models.layers import conv_block, identity_block, drop_dimension
+from src.utils.callbacks import DisplayOutputs, CustomSchedule
+from src.models.layers import ConvBlock, IdentityBlock, DropDimension
 
 
 class TokenEmbedding(layers.Layer):
@@ -40,24 +40,33 @@ class TokenEmbedding(layers.Layer):
 class ElectronDensityEmbedding(layers.Layer):
     def __init__(self, num_hid=64):
         super().__init__()
-        # size embedding
-        self.se = num_hid
+
+        self.conv32 = ConvBlock(kernel_size=3, filters=num_hid, stage=0, block='a', strides=2)
+        self.conv21 = ConvBlock(kernel_size=3, filters=num_hid, stage=1, block='a', strides=1)
+        self.conv11 = ConvBlock(kernel_size=3, filters=num_hid, stage=2, block='a', strides=1)
+
+        self.id32 = IdentityBlock(kernel_size=3, filters=num_hid, stage=0, block='a')
+        self.id21 = IdentityBlock(kernel_size=3, filters=num_hid, stage=1, block='a')
+        self.id11 = IdentityBlock(kernel_size=3, filters=num_hid, stage=2, block='a')
+
+        self.dd1 = DropDimension()
+        self.dd2 = DropDimension()
 
     def call(self, x):
         # First we do the pre-processing Jarek was doing
         x = tf.tanh(x)
-        x transform_ed(x)
+        x = transform_ed(x)
         # now from 3D to 2D
-        x = conv_block(x, kernel_size=3, filters=self.se, stage=i, block='a', strides=2)
-        x = identity_block(x, kernel_size=3, filters=self.se, stage=i, block='b')
-        x = drop_dimension(x)
+        x = self.conv32(x)
+        x = self.id32(x)
+        x = self.dd1(x)
         # from 2D to 1D
-        x = conv_block(x, kernel_size=3, filters=self.se, stage=i, block='a', strides=1)
-        x = identity_block(x, kernel_size=3, filters=self.se, stage=i, block='b')
-        x = drop_dimension(x)
+        x = self.conv21(x)
+        x = self.id21(x)
+        x = self.dd2(x)
         # keep 1D but to embedding size
-        x = conv_block(x, kernel_size=3, filters=self.se, stage=i, block='a', strides=1)
-        x = identity_block(x, kernel_size=3, filters=self.se, stage=i, block='b')
+        x = self.conv11(x)
+        x = self.id11(x)
 
         return x
 
@@ -66,7 +75,7 @@ class TransformerEncoder(layers.Layer):
     def __init__(self, embed_dim, num_heads, feed_forward_dim, rate=0.1):
         super().__init__()
         self.att = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
-        self.ffn = keras.Sequential(
+        self.ffn = tf.keras.Sequential(
             [
                 layers.Dense(feed_forward_dim, activation="relu"),
                 layers.Dense(embed_dim),
@@ -99,7 +108,7 @@ class TransformerDecoder(layers.Layer):
         self.self_dropout = layers.Dropout(0.5)
         self.enc_dropout = layers.Dropout(0.1)
         self.ffn_dropout = layers.Dropout(0.1)
-        self.ffn = keras.Sequential(
+        self.ffn = tf.keras.Sequential(
             [
                 layers.Dense(feed_forward_dim, activation="relu"),
                 layers.Dense(embed_dim),
@@ -136,7 +145,7 @@ class TransformerDecoder(layers.Layer):
         return ffn_out_norm
 
 
-class E2S_Transformer(keras.Model):
+class E2S_Transformer(tf.keras.Model):
     def __init__(
         self,
         num_hid=64,
@@ -148,7 +157,7 @@ class E2S_Transformer(keras.Model):
         num_classes=33,  # There are 33 different smiles tokens
     ):
         super().__init__()
-        self.loss_metric = keras.metrics.Mean(name="loss")
+        self.loss_metric = tf.keras.metrics.Mean(name="loss")
         self.num_hid = num_hid
         self.num_head = num_head
         self.num_feed_forward = num_feed_forward
@@ -162,7 +171,7 @@ class E2S_Transformer(keras.Model):
             num_vocab=num_classes, maxlen=target_maxlen, num_hid=num_hid
         )
 
-        self.encoder = keras.Sequential(
+        self.encoder = tf.keras.Sequential(
             [self.enc_input]
             + [
                 TransformerEncoder(num_hid, num_head, num_feed_forward)
@@ -206,7 +215,7 @@ class E2S_Transformer(keras.Model):
             from_logits=True, label_smoothing=0.1,
         )
 
-        optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self.compile(optimizer=optimizer, loss=loss_fn)
 
     def save_build(self, folder):
@@ -278,7 +287,7 @@ class E2S_Transformer(keras.Model):
             dec_input = tf.cast(smiles[:,:startid], dtype=tf.int32)
 
         dec_logits = []
-        for i in range(self.target_maxlen - 1):
+        for i in range(self.target_maxlen - startid - 1):
             dec_out = self.decode(enc, dec_input)
             logits = self.classifier(dec_out)
             logits = tf.argmax(logits, axis=-1, output_type=tf.int32)

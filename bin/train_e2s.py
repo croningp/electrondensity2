@@ -48,7 +48,9 @@ gpt = E2S_Transformer(
         num_layers_enc=2,
         num_layers_dec=2,
         )
-gpt.build(next(tfr_va.dataset_iter)[1].shape)
+
+batch = next(tfr_va.dataset_iter)
+gpt.build([batch[0].shape, batch[1].shape])
 gpt.summary()
 
 if mode == 'build':
@@ -63,4 +65,4 @@ EPOCHS_PRINT = 5
 
 gpt.compile_model()
 
-gpt.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
+gpt.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
