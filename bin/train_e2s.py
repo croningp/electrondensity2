@@ -23,7 +23,8 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-07/'  # fill with the right date
 
-DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+# DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
+DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets
@@ -51,10 +52,11 @@ with strategy.scope():
             num_layers_enc=2,
             num_layers_dec=2,
             )
+    e2s.compile_model()
 
-batch = next(tfr_va.dataset_iter)
-e2s.build([batch[0].shape, batch[1].shape])
-e2s.summary()
+    batch = next(tfr_va.dataset_iter)
+    e2s.build([batch[0].shape, batch[1].shape])
+    e2s.summary()
 
 if mode == 'build':
     e2s.save_build(RUN_FOLDER)
@@ -65,7 +67,5 @@ else:
 EPOCHS = 1000
 INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
-
-e2s.compile_model()
 
 e2s.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
