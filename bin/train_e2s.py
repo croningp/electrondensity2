@@ -41,28 +41,31 @@ tokenizer.load_from_config(path2to)
 
 # ARCHITECTURE ###########################################################################
 # create GPT model
-gpt = E2S_Transformer(
-        num_hid=64,
-        num_head=2,
-        num_feed_forward=128,
-        num_layers_enc=2,
-        num_layers_dec=2,
-        )
+strategy = tf.distribute.MirroredStrategy()
+
+with strategy.scope():
+    e2s = E2S_Transformer(
+            num_hid=64,
+            num_head=2,
+            num_feed_forward=128,
+            num_layers_enc=2,
+            num_layers_dec=2,
+            )
 
 batch = next(tfr_va.dataset_iter)
-gpt.build([batch[0].shape, batch[1].shape])
-gpt.summary()
+e2s.build([batch[0].shape, batch[1].shape])
+e2s.summary()
 
 if mode == 'build':
-    gpt.save_build(RUN_FOLDER)
+    e2s.save_build(RUN_FOLDER)
 else:
-    gpt.load_weights(os.path.join(RUN_FOLDER, 'weights/weights.h5'))
+    e2s.load_weights(os.path.join(RUN_FOLDER, 'weights/weights.h5'))
 
 # TRAINING ###############################################################################
 EPOCHS = 1000
 INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
 
-gpt.compile_model()
+e2s.compile_model()
 
-gpt.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
+e2s.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
