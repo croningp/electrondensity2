@@ -38,14 +38,14 @@ class VAEattention(VariationalAutoencoder):
             kernel_size = self.encoder_conv_kernel_size[i]
             strides = self.encoder_conv_strides[i]
 
-            # last layer, add residual blocks
-            if i == (self.n_layers_encoder-1):
-                x = TransformerBlock(filters)(x)
-                x = TransformerBlock(filters)(x)
-
             # create the residual blocks. I follow how resnet50 does it.
             x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
             x = identity_block(x, kernel_size, fmaps, stage=i, block='b')
+
+            # last layer, add residual blocks
+            if i == (self.n_layers_encoder-1):
+                x = TransformerBlock(filters)(x)
+                # x = TransformerBlock(filters)(x)
 
             # last 2 layers, reduce dimensions
             if i >= (self.n_layers_encoder-2):
@@ -89,9 +89,9 @@ class VAEattention(VariationalAutoencoder):
             x = conv_block(x, kernel_size, fmaps, stage=stage, block='a', strides=1)
             x = identity_block(x, kernel_size, fmaps, stage=stage, block='b')
 
-            # if i == 0:
-            #     x = TransformerBlock(filters)(x)
-            #     x = TransformerBlock(filters)(x)
+            if i == 0:
+                x = TransformerBlock(filters)(x)
+                # x = TransformerBlock(filters)(x)
 
         # last one with 1 feature map
         x = conv_block(x, kernel_size, [1, 1, 1], stage=stage+1, block='a', strides=1)

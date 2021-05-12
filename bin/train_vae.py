@@ -52,12 +52,12 @@ strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
     vae = VAEattention(
         input_dim=tfr.ED_SHAPE,
-        encoder_conv_filters=[16, 32, 64, 64],
+        encoder_conv_filters=[32, 64, 64, 64],
         encoder_conv_kernel_size=[3, 3, 3, 3],
-        encoder_conv_strides=[1, 1, 1, 1],
-        dec_conv_t_filters=[64, 64, 32, 16],
+        encoder_conv_strides=[2, 1, 1, 1],
+        dec_conv_t_filters=[64, 64, 64, 32],
         dec_conv_t_kernel_size=[3, 3, 3, 3],
-        dec_conv_t_strides=[1, 1, 1, 1],
+        dec_conv_t_strides=[1, 1, 1, 2],
         z_dim=200,
         use_batch_norm=True,
         use_dropout=True,

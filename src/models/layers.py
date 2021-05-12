@@ -119,7 +119,7 @@ def drop_dimension(input_tensor):
     return tf.squeeze(channel1, -1)
 
 
-def add_dimension(input_tensor, filters=64):
+def add_dimension(input_tensor, filters=32):
     """Given a 3D tensor it will return a 4D one, and given a 2D tensor it will return a
     3D one. As I above with drop_dimension, instead of just expand_dims here, I will also
     do a conv.
