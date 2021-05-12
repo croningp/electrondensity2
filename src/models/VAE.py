@@ -328,10 +328,10 @@ class VariationalAutoencoder():
             m2 = valid_dataset.next()[0]
 
         # get their latent vector using the encoder
-        pd = self.model.preprocess_data # just to get a shorter name
+        pd = self.model.preprocess_data  # just to get a shorter name
         _, _, l1 = self.encoder(pd(m1))
         _, _, l2 = self.encoder(pd(m2))
-        l1 = l1[:1] # just get the first 2 so we don't need to move the whole batch
+        l1 = l1[:1]  # just get the first 2 so we don't need to move the whole batch
         l2 = l2[:1]
 
         # calculate interpolation steps
@@ -342,7 +342,7 @@ class VariationalAutoencoder():
         for i in range(steps+1):
             mol = l1 + step*i
             cubes = self.decoder(mol)
-            cubes = transform_back_ed(cubes).numpy()[0] # just take 1
+            cubes = transform_back_ed(cubes).numpy()[0]  # just take 1
             generated_cubes.extend([cubes])
 
         if savepath is not None:
@@ -362,7 +362,7 @@ class VariationalAutoencoder():
             m2 = valid_dataset.next()[0][:10]
 
         # get their latent vector using the encoder
-        pd = self.model.preprocess_data # just to get a shorter name
+        pd = self.model.preprocess_data  # just to get a shorter name
         _, _, l1 = self.encoder(pd(m1))
         _, _, l2 = self.encoder(pd(m2))
 
