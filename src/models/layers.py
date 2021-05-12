@@ -20,29 +20,30 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
         input_tensor: input tensor
         kernel_size: default 3, the kernel size of
             middle conv layer at main path
-        filters: list of integers, the filters of 3 conv layer at main path
+        filters: Integer describing the size of the last conv
         stage: integer, current stage label, used for generating layer names
         block: 'a','b'..., current block label, used for generating layer names
     # Returns
         Output tensor for the block.
     """
-    filters1, filters2, filters3 = filters
 
     conv_name_base = 'res' + str(stage) + block + '_branch'
     bn_name_base = 'bn' + str(stage) + block + '_branch'
 
     # decide type of convolutions depending on input tensor
-    if len(input_tensor.shape) > 4:
+    if len(input_tensor.shape) == 5:
         conv = layers.Conv3D
-    else:
+    elif len(input_tensor.shape) == 4:
         conv = layers.Conv2D
+    else:
+        conv = layers.Conv1D
 
-    x = conv(filters1, kernel_size, padding='same', kernel_initializer='orthogonal',
+    x = conv(filters // 4, kernel_size, padding='same', kernel_initializer='orthogonal',
              name=conv_name_base + '2a')(input_tensor)
     x = layers.BatchNormalization(name=bn_name_base + '2a')(x)
     x = layers.Activation('relu')(x)
 
-    x = conv(filters3, kernel_size, padding='same', kernel_initializer='orthogonal',
+    x = conv(filters, kernel_size, padding='same', kernel_initializer='orthogonal',
              name=conv_name_base + '2b')(x)
     x = layers.BatchNormalization(name=bn_name_base + '2b')(x)
 
@@ -57,34 +58,35 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
         input_tensor: input tensor
         kernel_size: default 3, the kernel size of
             middle conv layer at main path
-        filters: list of integers, the filters of 3 conv layer at main path
+        filters: Integer describing the size of the last conv
         stage: integer, current stage label, used for generating layer names
         block: 'a','b'..., current block label, used for generating layer names
         strides: Strides for the first conv layer in the block.
     # Returns
         Output tensor for the block.
     """
-    filters1, filters2, filters3 = filters
 
     conv_name_base = 'res' + str(stage) + block + '_branch'
     bn_name_base = 'bn' + str(stage) + block + '_branch'
 
     # decide type of convolutions depending on input tensor
-    if len(input_tensor.shape) > 4:
+    if len(input_tensor.shape) == 5:
         conv = layers.Conv3D
-    else:
+    elif len(input_tensor.shape) == 4:
         conv = layers.Conv2D
+    else:
+        conv = layers.Conv1D
 
-    x = conv(filters1, kernel_size, strides=strides, padding='same',
+    x = conv(filters // 4, kernel_size, strides=strides, padding='same',
              kernel_initializer='orthogonal', name=conv_name_base + '2a')(input_tensor)
     x = layers.BatchNormalization(name=bn_name_base + '2a')(x)
     x = layers.Activation('relu')(x)
 
-    x = conv(filters3, kernel_size, padding='same',
+    x = conv(filters, kernel_size, padding='same',
              kernel_initializer='orthogonal', name=conv_name_base + '2b')(x)
     x = layers.BatchNormalization(name=bn_name_base + '2b')(x)
 
-    shortcut = conv(filters3, 1, strides=strides,
+    shortcut = conv(filters, 1, strides=strides,
                     kernel_initializer='orthogonal',
                     name=conv_name_base + '1')(input_tensor)
     shortcut = layers.BatchNormalization(name=bn_name_base + '1')(shortcut)
