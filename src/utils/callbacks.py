@@ -58,12 +58,12 @@ class DisplayOutputs(Callback):
 
         if epoch % self.print_every_n_epochs != 0:
             return
-        # fetch the smiles, remember [0] is electron density
+        # fetch the smiles, remember [0] is electron density, to calculate batch size.
         source = self.batch[1]
         target = source.numpy()
         bs = source.shape[0]
         preds = self.model.generate(
-            source, self.target_start_token_idx, self.genfrom)
+            self.batch, self.target_start_token_idx, self.genfrom)
         preds = preds.numpy()
         originals = []
         predictions = []
