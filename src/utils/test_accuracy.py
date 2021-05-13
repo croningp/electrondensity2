@@ -73,7 +73,7 @@ if __name__ == "__main__":
         # load the current weight
         e2s.load_weights(weight)
         # calculate the predictions
-        predictions = e2s.generate(batch)
+        predictions = e2s.generate(batch, startid=0)
         # transform in the source batch every 32 (null) to 31 (stop)
         batch_31s = batch[1].numpy()
         batch_31s[batch_31s==32] = 31
