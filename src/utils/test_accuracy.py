@@ -9,9 +9,10 @@ import glob
 import argparse
 import numpy as np
 import tensorflow as tf
+from datetime import datetime
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 from src.models.ED2smiles import E2S_Transformer
 from src.utils.TFRecordLoader import TFRecordLoader
@@ -46,6 +47,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print('Opening {}'.format(args.folder))
 
+    # log file where to save the results
+    logfile = args.folder + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ".txt"
+    with open(logfile, 'w') as f:
+        print('TESTING ACCURACY ' + args.folder, file=f)
+
+
     # get list of weights to test
     allweights = sorted(glob.glob(args.folder+'*.h5'))
 
@@ -62,29 +69,41 @@ if __name__ == "__main__":
         num_layers_enc=2,
         num_layers_dec=2,
         )
-    # instead of doing the whole thing, just take a batch for faster calculations
-    for i in range(15):
-        batch = next(tfr_va.dataset_iter)
+
+    batch = next(tfr_va.dataset_iter)
     e2s.build([batch[0].shape, batch[1].shape])
 
     m = tf.keras.metrics.Accuracy()
+    numbatches = 5  # number of batches to test
 
     for weight in allweights:
         # load the current weight
         e2s.load_weights(weight)
-        # calculate the predictions
-        predictions = e2s.generate(batch, startid=0)
-        # transform in the source batch every 32 (null) to 31 (stop)
-        batch_31s = batch[1].numpy()
-        batch_31s[batch_31s==32] = 31
-        # in the predictions make sure after a stop everything else is also stop
-        preds_numpy = predictions.numpy()
-        clean_predictions(preds_numpy)
-        # just substract one from the other, 0 means they are the same
-        comp = preds_numpy-batch_31s
-        # calculate the accuracy also as token by token comparison
-        m.update_state(predictions, batch[1])
+        good_sequences = 0  # to keep track of the number of good sequences predicted
+        # load the record again so the batches are always the same
+        tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['smiles'])
+
+        for i in range(numbatches):
+            # get the next batch
+            batch = next(tfr_va.dataset_iter)
+            # calculate the predictions
+            predictions = e2s.generate(batch, startid=0)
+            # transform in the source batch every 32 (null) to 31 (stop)
+            batch_31s = batch[1].numpy()
+            batch_31s[batch_31s==32] = 31
+            # in the predictions make sure after a stop everything else is also stop
+            preds_numpy = predictions.numpy()
+            clean_predictions(preds_numpy)
+            # just substract one from the other, 0 means they are the same
+            comp = preds_numpy-batch_31s
+            good_sequences += np.sum(~comp.any(1))
+            # calculate the accuracy also as token by token comparison
+            m.update_state(predictions, batch_31s)
+        
         # print weight file, number of good smiles, accuracy token by token
-        print(weight, np.sum(~comp.any(1))/64., m.result().numpy())
+        print(weight, good_sequences/(64*numbatches), m.result().numpy())
+        # save it also into a file
+        with open(logfile, 'a') as f:
+            print(weight, good_sequences/(64*numbatches), m.result().numpy(), file=f)
         # need to reset metric now to start fresh next iteration
         m.reset_states()
