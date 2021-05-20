@@ -6,3 +6,4 @@ logs/
 orbkit/
 logs/
 *.p
+*.png

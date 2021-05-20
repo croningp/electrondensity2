@@ -1,3 +1,9 @@
+##########################################################################################
+#
+# Same as train_e2s.py but using the RTX 2080 TI gpus
+#
+##########################################################################################
+
 import os
 from datetime import datetime
 import tensorflow as tf
@@ -7,9 +13,9 @@ from src.models.ED2smiles import E2S_Transformer
 from src.datasets.utils.tokenizer import Tokenizer
 
 # RUN PARAMS #############################################################################
-os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
 RUN_FOLDER = 'logs/e2s/'
-mode = 'load'  # use 'build' to start train, 'load' to continue an old train
+mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -23,8 +29,8 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-12/'  # fill with the right date
 
-DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
-# DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
+# DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
+DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets
@@ -46,11 +52,11 @@ strategy = tf.distribute.MirroredStrategy()
 
 with strategy.scope():
     e2s = E2S_Transformer(
-            num_hid=64,
-            num_head=2,
-            num_feed_forward=128,
-            num_layers_enc=2,
-            num_layers_dec=2,
+            num_hid=256,
+            num_head=4,
+            num_feed_forward=512,
+            num_layers_enc=4,
+            num_layers_dec=4,
             )
     e2s.compile_model()
 
@@ -65,7 +71,7 @@ else:
 
 # TRAINING ###############################################################################
 EPOCHS = 1000
-INITIAL_EPOCH = 151
+INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
 
 e2s.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)

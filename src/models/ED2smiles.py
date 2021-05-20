@@ -283,11 +283,13 @@ class E2S_Transformer(tf.keras.Model):
         
         if startid == 0:
             dec_input = tf.ones((bs, 1), dtype=tf.int32) * target_start_token_idx
+            maxlen = self.target_maxlen - 1
         else:
             dec_input = tf.cast(smiles[:,:startid], dtype=tf.int32)
+            maxlen = self.target_maxlen - startid
 
         dec_logits = []
-        for i in range(self.target_maxlen - startid - 1):
+        for i in range(maxlen):
             dec_out = self.decode(enc, dec_input)
             logits = self.classifier(dec_out)
             logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
@@ -303,6 +305,7 @@ class E2S_Transformer(tf.keras.Model):
 
         display_cb = DisplayOutputs(
             next(valid_dataset.dataset_iter), tokenizer.num2token, run_folder=run_folder,
+            generate_from=2
         )
 
         checkpoint_filepath = os.path.join(
