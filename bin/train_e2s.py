@@ -23,8 +23,8 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-07/'  # fill with the right date
 
-# DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
-DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
+DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
+# DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets
@@ -68,4 +68,4 @@ EPOCHS = 1000
 INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
 
-e2s.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
+e2s.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
