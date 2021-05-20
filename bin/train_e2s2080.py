@@ -15,7 +15,7 @@ from src.datasets.utils.tokenizer import Tokenizer
 # RUN PARAMS #############################################################################
 os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
 RUN_FOLDER = 'logs/e2s/'
-mode = 'load'  # use 'build' to start train, 'load' to continue an old train
+mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -71,7 +71,7 @@ else:
 
 # TRAINING ###############################################################################
 EPOCHS = 1000
-INITIAL_EPOCH = 81
+INITIAL_EPOCH = 0
 EPOCHS_PRINT = 5
 
 e2s.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)

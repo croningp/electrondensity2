@@ -38,6 +38,10 @@ class TokenEmbedding(layers.Layer):
 
 
 class ElectronDensityEmbedding(layers.Layer):
+    """We need to transform a 4D tensor into a 2D tensor. The drop of dimensionality in 
+    this embedding will be achieved by using the function DropDimension (check layers), 
+    which basically does a convolution with 1 feature map and then it squeezes it out.
+    """
     def __init__(self, num_hid=64):
         super().__init__()
 
@@ -69,6 +73,46 @@ class ElectronDensityEmbedding(layers.Layer):
         x = self.id11(x)
 
         return x
+
+class ElectronDensityEmbeddingV2(layers.Layer):
+    """We need to transform a 4D into a 2D tensor. The drop of dimensionality in this 
+    embedding will be achieved by using strides of 2 in 2 out of the 4 dimensions, until 
+    they are 1,1,N,N and then we will squeeze them out.
+    """
+    def __init__(self, num_hid=64):
+        super().__init__()
+
+        self.conv32 = ConvBlock(kernel_size=3, filters=num_hid, stage=0, block='a', strides=2)
+        self.conv16 = ConvBlock(kernel_size=3, filters=num_hid, stage=1, block='a',
+                                strides=[2,2,1])
+        self.conv4 = ConvBlock(kernel_size=3, filters=num_hid, stage=2, block='a',
+                               strides=[4,4,1])
+        self.conv1 = ConvBlock(kernel_size=3, filters=num_hid, stage=4, block='a',
+                               strides=[4,4,1])
+
+        self.id32 = IdentityBlock(kernel_size=3, filters=num_hid, stage=0, block='a')
+        self.id16 = IdentityBlock(kernel_size=3, filters=num_hid, stage=1, block='a')
+        self.id4 = IdentityBlock(kernel_size=3, filters=num_hid, stage=0, block='a')
+        self.id1 = IdentityBlock(kernel_size=3, filters=num_hid, stage=2, block='a')
+
+    def call(self, x):
+        # First we do the pre-processing Jarek was doing
+        x = tf.tanh(x)
+        x = transform_ed(x)
+        # now from 64,64,64,1 to 32,32,32,num_hid
+        x = self.conv32(x)
+        x = self.id32(x)
+        # now from 32,32,32,num_hid to 16,16,32,num_hid
+        x = self.conv16(x)
+        x = self.id16(x)
+        # now from 16,16,32,1 to 4,4,32,num_hid
+        x = self.conv4(x)
+        x = self.id4(x)
+        # now from 4,4,32,num_hid to 1,1,32,num_hid
+        x = self.conv1(x)
+        x = self.id1(x)
+
+        return tf.squeeze(x, [1,2])
 
 
 class TransformerEncoder(layers.Layer):
@@ -166,7 +210,7 @@ class E2S_Transformer(tf.keras.Model):
         self.target_maxlen = target_maxlen
         self.num_classes = num_classes
 
-        self.enc_input = ElectronDensityEmbedding(num_hid=num_hid)
+        self.enc_input = ElectronDensityEmbeddingV2(num_hid=num_hid)
         self.dec_input = TokenEmbedding(
             num_vocab=num_classes, maxlen=target_maxlen, num_hid=num_hid
         )
