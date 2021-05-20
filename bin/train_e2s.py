@@ -23,8 +23,8 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-12/'  # fill with the right date
 
-# DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
-DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
+DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
+# DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets
