@@ -1,7 +1,10 @@
 ##########################################################################################
 #
+# Tests the accuracy of the Transformer model to generate smiles from electron density.
+# For it to match, all the tokens (from start to first stop) need to match perfectly.
 # Given a folder with weights, it will load them into the model, and test the accuracy
 # against the test set.
+# Author: juanma@chem.gla.ac.uk
 #
 #########################################################################################
 
@@ -51,7 +54,6 @@ if __name__ == "__main__":
     logfile = args.folder + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ".txt"
     with open(logfile, 'w') as f:
         print('TESTING ACCURACY ' + args.folder, file=f)
-
 
     # get list of weights to test
     allweights = sorted(glob.glob(args.folder+'*.h5'))
