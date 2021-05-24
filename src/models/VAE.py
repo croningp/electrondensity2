@@ -236,7 +236,7 @@ class VariationalAutoencoder():
                 self.input_dim, self.encoder_conv_filters,
                 self.encoder_conv_kernel_size, self.encoder_conv_strides,
                 self.decoder_conv_t_filters, self.decoder_conv_t_kernel_size,
-                self.decoder_conv_t_strides, self.z_dim,
+                self.decoder_conv_t_strides, self.z_dim, self.r_loss_factor,
                 self.use_batch_norm, self.use_dropout
                 ], f)
 
