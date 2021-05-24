@@ -63,11 +63,11 @@ if __name__ == "__main__":
 
     # create model
     e2s = E2S_Transformer(
-        num_hid=256,
-        num_head=4,
+        num_hid=128,
+        num_head=2,
         num_feed_forward=512,
-        num_layers_enc=4,
-        num_layers_dec=4,
+        num_layers_enc=6,
+        num_layers_dec=6,
         )
 
     batch = next(tfr_va.dataset_iter)
