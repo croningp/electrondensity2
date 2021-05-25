@@ -97,9 +97,9 @@ def grad(noise, vae):
 
 if __name__ == "__main__":
 
-    BATCH_SIZE = 64
+    BATCH_SIZE = 32
     host = load_host('/home/nvme/juanma/Data/Jarek/cc6.pkl', BATCH_SIZE)
-    vae, z_dim = load_model('logs/vae/2021-04-13/')
+    vae, z_dim = load_model('logs/vae/2021-05-25/')
 
     noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
     _, _, initial_output = grad(noise_t, vae)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         pickle.dump(initial_output+host, file)
 
     for i in tqdm.tqdm(range(500)):
-        f, grads, output = grad(noise_t)
+        f, grads, output = grad(noise_t, vae)
         print(np.mean(f.numpy()))
         noise_t -= 0.1 * grads[0].numpy()
         #noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
