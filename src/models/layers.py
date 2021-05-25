@@ -9,6 +9,7 @@
 ##########################################################################################
 
 
+import math
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import backend as K
@@ -77,7 +78,10 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
     else:
         conv = layers.Conv1D
 
-    x = conv(filters // 4, kernel_size, strides=strides, padding='same',
+    # first conv is smaller
+    filters1 = math.ceil(filters/4)
+
+    x = conv(filters1, kernel_size, strides=strides, padding='same',
              kernel_initializer='orthogonal', name=conv_name_base + '2a')(input_tensor)
     x = layers.BatchNormalization(name=bn_name_base + '2a')(x)
     x = layers.Activation('relu')(x)

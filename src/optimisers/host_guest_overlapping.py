@@ -10,9 +10,11 @@
 ##########################################################################################
 
 import os
+import tqdm
 import pickle
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import backend as K
 
 from src.models.VAEresnet import VAEresnet
 from src.utils import transform_back_ed
@@ -97,4 +99,26 @@ if __name__ == "__main__":
 
     BATCH_SIZE = 64
     host = load_host('/home/nvme/juanma/Data/Jarek/cc6.pkl', BATCH_SIZE)
-    vae, z_dim = load_model('logs/vae/2021-05-11/')
+    vae, z_dim = load_model('logs/vae/2021-04-13/')
+
+    noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
+    _, _, initial_output = grad(noise_t, vae)
+
+    with open('initial_g.pkl', 'wb') as file:
+        pickle.dump(initial_output, file)
+        
+    with open('initial_hg.pkl', 'wb') as file:
+        pickle.dump(initial_output+host, file)
+
+    for i in tqdm.tqdm(range(500)):
+        f, grads, output = grad(noise_t)
+        print(np.mean(f.numpy()))
+        noise_t -= 0.1 * grads[0].numpy()
+        #noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
+        if i % 200 == 0:
+            with open('optimized.pkl', 'wb') as file:
+                pickle.dump(output, file)
+        
+            with open('optimized_hg.pkl', 'wb') as file:
+                pickle.dump(output+host, file)
+
