@@ -105,10 +105,14 @@ class VAEModel(Model):
         if isinstance(data, tuple):
             data = data[0]
         total_loss, reconstruction_loss, kl_loss = self.losses(data)
+        # update the trackers
+        self.total_loss_tracker.update_state(total_loss)
+        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
+        self.kl_loss_tracker.update_state(kl_loss)
         return {
-            "loss": total_loss,
-            "reconstruction_loss": reconstruction_loss,
-            "kl_loss": kl_loss,
+            "loss": self.total_loss_tracker.result(),
+            "reconstruction_loss": self.reconstruction_loss_tracker.result(),
+            "kl_loss": self.kl_loss_tracker.result(),
         }
 
     def call(self, inputs):

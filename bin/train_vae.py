@@ -17,9 +17,9 @@ from src.utils.TFRecordLoader import TFRecordLoader
 from src.models.VAEresnet import VAEresnet
 
 # RUN PARAMS #############################################################################
-#os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
 RUN_FOLDER = 'logs/vae/'
-mode = 'build'  # use 'build' to start train, 'load' to continue an old train
+mode = 'load'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -33,8 +33,8 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-25/'  # fill with the right date
 
-# DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'  # in DS
-DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
+DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'  # in DS
+# DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
 
 # DATA ###################################################################################
 # paths to the train and validation sets
@@ -78,8 +78,8 @@ else:
 
 # TRAINING ###############################################################################
 EPOCHS = 1000
-INITIAL_EPOCH = 1
+INITIAL_EPOCH = 31
 EPOCHS_PRINT = 5
 
-vae.train(tfr_va, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)
+vae.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH, EPOCHS_PRINT)
 
