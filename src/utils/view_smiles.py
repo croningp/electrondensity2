@@ -1,3 +1,10 @@
+##########################################################################################
+#
+# Given a list of smiles (in a pickle file), it will generate a PNG with the molecules 
+# visualised. Smiles to molecules is done using orbkit.
+#
+##########################################################################################
+
 from rdkit import Chem
 from rdkit.Chem import Draw
 import pickle
