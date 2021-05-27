@@ -33,6 +33,7 @@ def load_host(filepath, batch_size):
     with open(filepath, 'rb') as file:
         host = pickle.load(file)
         host = host.astype(np.float32)
+        # tan h needed?
     return tf.tile(host, [batch_size, 1, 1, 1, 1])
 
 

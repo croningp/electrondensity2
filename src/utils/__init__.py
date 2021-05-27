@@ -36,7 +36,6 @@ def transform_ed(density):
     density = density + 1e-4
     density = tf.math.log(density)
     density = density / tf.math.log(1e-4)
-    
     return density
 
 def transform_back_ed(density):

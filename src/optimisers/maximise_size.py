@@ -67,10 +67,10 @@ def grad(noise, vae):
                 [batch_size, 64, 64, 64, 1]
     """
     output = vae.decoder(noise)
-    output = transform_back_ed(output)
-    fitness = tf.reduce_sum(output, axis=[1,2,3,4,])
+    outputED = transform_back_ed(output)
+    fitness = tf.reduce_sum(outputED, axis=[1,2,3,4,])
     gradients = tf.gradients(fitness, noise)
-    return fitness, gradients, output
+    return fitness, gradients, output, outputED
 
 
 if __name__ == "__main__":
@@ -79,18 +79,22 @@ if __name__ == "__main__":
     vae, z_dim = load_model('logs/vae/2021-05-25/')
 
     noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
-    _, _, initial_output = grad(noise_t, vae)
+    _, _, initial_output, initial_outputED = grad(noise_t, vae)
 
     with open('initial.p', 'wb') as file:
         pickle.dump(initial_output, file)
+    with open('initialED.p', 'wb') as file:
+        pickle.dump(initial_outputED, file)
 
-    for i in tqdm.tqdm(range(1000)):
-        f, grads, output = grad(noise_t, vae)
+    for i in tqdm.tqdm(range(500)):
+        f, grads, output, outputED = grad(noise_t, vae)
         print(np.mean(f.numpy()))
-        noise_t += 0.01 * grads[0].numpy()
+        noise_t += 0.005 * grads[0].numpy()
         # clip the noise to -1. 1. to prevent from driffting from normal distribution
         noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
 
         if i % 100 == 0:
             with open('optimized.p', 'wb') as file:
                 pickle.dump(output, file)
+            with open('optimizedED.p', 'wb') as file:
+                pickle.dump(outputED, file)
