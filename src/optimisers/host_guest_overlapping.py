@@ -104,21 +104,21 @@ if __name__ == "__main__":
     noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
     _, _, initial_output = grad(noise_t, vae)
 
-    with open('initial_g.pkl', 'wb') as file:
+    with open('initial_g.p', 'wb') as file:
         pickle.dump(initial_output, file)
         
-    with open('initial_hg.pkl', 'wb') as file:
+    with open('initial_hg.p', 'wb') as file:
         pickle.dump(initial_output+host, file)
 
-    for i in tqdm.tqdm(range(500)):
+    for i in tqdm.tqdm(range(1000)):
         f, grads, output = grad(noise_t, vae)
         print(np.mean(f.numpy()))
         noise_t -= 0.1 * grads[0].numpy()
         #noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
-        if i % 200 == 0:
-            with open('optimized.pkl', 'wb') as file:
+        if i % 100 == 0:
+            with open('optimized_g.p', 'wb') as file:
                 pickle.dump(output, file)
         
-            with open('optimized_hg.pkl', 'wb') as file:
+            with open('optimized_hg.p', 'wb') as file:
                 pickle.dump(output+host, file)
 
