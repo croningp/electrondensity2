@@ -13,8 +13,6 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import pickle
 import argparse
-from re import T
-import token
 from rdkit import Chem
 from rdkit.Chem import Draw
 
@@ -68,6 +66,7 @@ def load_model(modelpath, datapath):
         num_feed_forward=config[2],
         num_layers_enc=config[3],
         num_layers_dec=config[4],
+        use_tanh=False,
     )
     e2s.build([batch[0].shape, batch[1].shape])
 
@@ -97,7 +96,7 @@ if __name__ == "__main__":
         cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
-    preds = e2s.generate(cubes, startid=0)
+    preds = e2s.generate([cubes, []], startid=0)
     preds = preds.numpy()
     
     smiles = []  # where to store the generated smiles
