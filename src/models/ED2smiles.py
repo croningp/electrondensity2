@@ -42,16 +42,23 @@ class ElectronDensityEmbedding(layers.Layer):
     this embedding will be achieved by using the function DropDimension (check layers), 
     which basically does a convolution with 1 feature map and then it squeezes it out.
     """
+
     def __init__(self, num_hid=64):
         super().__init__()
 
-        self.conv32 = ConvBlock(kernel_size=3, filters=num_hid, stage=0, block='a', strides=2)
-        self.conv21 = ConvBlock(kernel_size=3, filters=num_hid, stage=1, block='a', strides=1)
-        self.conv11 = ConvBlock(kernel_size=3, filters=num_hid, stage=2, block='a', strides=1)
+        self.conv32 = ConvBlock(
+            kernel_size=3, filters=num_hid, stage=0, block='a', strides=2)
+        self.conv21 = ConvBlock(
+            kernel_size=3, filters=num_hid, stage=1, block='a', strides=1)
+        self.conv11 = ConvBlock(
+            kernel_size=3, filters=num_hid, stage=2, block='a', strides=1)
 
-        self.id32 = IdentityBlock(kernel_size=3, filters=num_hid, stage=0, block='a')
-        self.id21 = IdentityBlock(kernel_size=3, filters=num_hid, stage=1, block='a')
-        self.id11 = IdentityBlock(kernel_size=3, filters=num_hid, stage=2, block='a')
+        self.id32 = IdentityBlock(
+            kernel_size=3, filters=num_hid, stage=0, block='a')
+        self.id21 = IdentityBlock(
+            kernel_size=3, filters=num_hid, stage=1, block='a')
+        self.id11 = IdentityBlock(
+            kernel_size=3, filters=num_hid, stage=2, block='a')
 
         self.dd1 = DropDimension()
         self.dd2 = DropDimension()
@@ -74,30 +81,41 @@ class ElectronDensityEmbedding(layers.Layer):
 
         return x
 
+
 class ElectronDensityEmbeddingV2(layers.Layer):
     """We need to transform a 4D into a 2D tensor. The drop of dimensionality in this 
     embedding will be achieved by using strides of 2 in 2 out of the 4 dimensions, until 
     they are 1,1,N,N and then we will squeeze them out.
     """
-    def __init__(self, num_hid=64):
+
+    def __init__(self, num_hid=64, usetanh=True):
         super().__init__()
 
-        self.conv32 = ConvBlock(kernel_size=3, filters=num_hid, stage=0, block='a', strides=2)
+        self.conv32 = ConvBlock(
+            kernel_size=3, filters=num_hid, stage=0, block='a', strides=2)
         self.conv16 = ConvBlock(kernel_size=3, filters=num_hid, stage=1, block='a',
-                                strides=[2,2,1])
+                                strides=[2, 2, 1])
         self.conv4 = ConvBlock(kernel_size=3, filters=num_hid, stage=2, block='a',
-                               strides=[4,4,1])
+                               strides=[4, 4, 1])
         self.conv1 = ConvBlock(kernel_size=3, filters=num_hid, stage=4, block='a',
-                               strides=[4,4,1])
+                               strides=[4, 4, 1])
 
-        self.id32 = IdentityBlock(kernel_size=3, filters=num_hid, stage=0, block='a')
-        self.id16 = IdentityBlock(kernel_size=3, filters=num_hid, stage=1, block='a')
-        self.id4 = IdentityBlock(kernel_size=3, filters=num_hid, stage=0, block='a')
-        self.id1 = IdentityBlock(kernel_size=3, filters=num_hid, stage=2, block='a')
+        self.id32 = IdentityBlock(
+            kernel_size=3, filters=num_hid, stage=0, block='a')
+        self.id16 = IdentityBlock(
+            kernel_size=3, filters=num_hid, stage=1, block='a')
+        self.id4 = IdentityBlock(
+            kernel_size=3, filters=num_hid, stage=0, block='a')
+        self.id1 = IdentityBlock(
+            kernel_size=3, filters=num_hid, stage=2, block='a')
+
+        # when EDs come directly from db we need tanh, when they come from VAE we dont.
+        self.usetanh = usetanh
 
     def call(self, x):
         # First we do the pre-processing Jarek was doing
-        x = tf.tanh(x)
+        if self.usetanh:
+            x = tf.tanh(x)
         x = transform_ed(x)
         # now from 64,64,64,1 to 32,32,32,num_hid
         x = self.conv32(x)
@@ -112,13 +130,14 @@ class ElectronDensityEmbeddingV2(layers.Layer):
         x = self.conv1(x)
         x = self.id1(x)
 
-        return tf.squeeze(x, [1,2])
+        return tf.squeeze(x, [1, 2])
 
 
 class TransformerEncoder(layers.Layer):
     def __init__(self, embed_dim, num_heads, feed_forward_dim, rate=0.1):
         super().__init__()
-        self.att = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
+        self.att = layers.MultiHeadAttention(
+            num_heads=num_heads, key_dim=embed_dim)
         self.ffn = tf.keras.Sequential(
             [
                 layers.Dense(feed_forward_dim, activation="relu"),
@@ -148,7 +167,8 @@ class TransformerDecoder(layers.Layer):
         self.self_att = layers.MultiHeadAttention(
             num_heads=num_heads, key_dim=embed_dim
         )
-        self.enc_att = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
+        self.enc_att = layers.MultiHeadAttention(
+            num_heads=num_heads, key_dim=embed_dim)
         self.self_dropout = layers.Dropout(0.5)
         self.enc_dropout = layers.Dropout(0.1)
         self.ffn_dropout = layers.Dropout(0.1)
@@ -171,7 +191,8 @@ class TransformerDecoder(layers.Layer):
         mask = tf.cast(m, dtype)
         mask = tf.reshape(mask, [1, n_dest, n_src])
         mult = tf.concat(
-            [tf.expand_dims(batch_size, -1), tf.constant([1, 1], dtype=tf.int32)], 0
+            [tf.expand_dims(batch_size, -1),
+             tf.constant([1, 1], dtype=tf.int32)], 0
         )
         return tf.tile(mask, mult)
 
@@ -179,13 +200,15 @@ class TransformerDecoder(layers.Layer):
         input_shape = tf.shape(target)
         batch_size = input_shape[0]
         seq_len = input_shape[1]
-        causal_mask = self.causal_attention_mask(batch_size, seq_len, seq_len, tf.bool)
+        causal_mask = self.causal_attention_mask(
+            batch_size, seq_len, seq_len, tf.bool)
         target_att = self.self_att(target, target, attention_mask=causal_mask)
         target_norm = self.layernorm1(target + self.self_dropout(target_att))
         enc_out = self.enc_att(target_norm, enc_out)
         enc_out_norm = self.layernorm2(self.enc_dropout(enc_out) + target_norm)
         ffn_out = self.ffn(enc_out_norm)
-        ffn_out_norm = self.layernorm3(enc_out_norm + self.ffn_dropout(ffn_out))
+        ffn_out_norm = self.layernorm3(
+            enc_out_norm + self.ffn_dropout(ffn_out))
         return ffn_out_norm
 
 
@@ -199,6 +222,7 @@ class E2S_Transformer(tf.keras.Model):
         num_layers_enc=4,
         num_layers_dec=1,
         num_classes=33,  # There are 33 different smiles tokens
+        use_tanh=True,  # when EDs come directly from db we need tanh, else dont
     ):
         super().__init__()
         self.loss_metric = tf.keras.metrics.Mean(name="loss")
@@ -210,7 +234,8 @@ class E2S_Transformer(tf.keras.Model):
         self.target_maxlen = target_maxlen
         self.num_classes = num_classes
 
-        self.enc_input = ElectronDensityEmbeddingV2(num_hid=num_hid)
+        self.enc_input = ElectronDensityEmbeddingV2(
+            num_hid=num_hid, usetanh=use_tanh)
         self.dec_input = TokenEmbedding(
             num_vocab=num_classes, maxlen=target_maxlen, num_hid=num_hid
         )
@@ -297,7 +322,8 @@ class E2S_Transformer(tf.keras.Model):
         with tf.GradientTape() as tape:
             preds = self([source, dec_input])
             one_hot = tf.one_hot(dec_target, depth=self.num_classes)
-            mask = tf.math.logical_not(tf.math.equal(dec_target, 32))  # 32 is 'NULL'
+            mask = tf.math.logical_not(
+                tf.math.equal(dec_target, 32))  # 32 is 'NULL'
             loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
@@ -312,7 +338,8 @@ class E2S_Transformer(tf.keras.Model):
         dec_target = target[:, 1:]
         preds = self([source, dec_input])
         one_hot = tf.one_hot(dec_target, depth=self.num_classes)
-        mask = tf.math.logical_not(tf.math.equal(dec_target, 32))  # 32 is 'NULL'
+        mask = tf.math.logical_not(
+            tf.math.equal(dec_target, 32))  # 32 is 'NULL'
         loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
         self.loss_metric.update_state(loss)
         return {"loss": self.loss_metric.result()}
@@ -324,12 +351,13 @@ class E2S_Transformer(tf.keras.Model):
         smiles = batch[1]
         bs = tf.shape(source)[0]
         enc = self.encoder(source)
-        
+
         if startid == 0:
-            dec_input = tf.ones((bs, 1), dtype=tf.int32) * target_start_token_idx
+            dec_input = tf.ones((bs, 1), dtype=tf.int32) * \
+                target_start_token_idx
             maxlen = self.target_maxlen - 1
         else:
-            dec_input = tf.cast(smiles[:,:startid], dtype=tf.int32)
+            dec_input = tf.cast(smiles[:, :startid], dtype=tf.int32)
             maxlen = self.target_maxlen - startid
 
         dec_logits = []
@@ -366,4 +394,3 @@ class E2S_Transformer(tf.keras.Model):
             train_dataset.dataset, validation_data=valid_dataset.dataset,
             epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )
-
