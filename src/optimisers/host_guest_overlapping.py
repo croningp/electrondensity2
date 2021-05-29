@@ -111,11 +111,11 @@ if __name__ == "__main__":
     with open('initial_hg.p', 'wb') as file:
         pickle.dump(initial_output+host, file)
 
-    for i in tqdm.tqdm(range(1000)):
+    for i in tqdm.tqdm(range(10000)):
         f, grads, output = grad(noise_t, vae)
         print(np.mean(f.numpy()))
         noise_t -= 0.1 * grads[0].numpy()
-        #noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
+        noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
         if i % 100 == 0:
             with open('optimized_g.p', 'wb') as file:
                 pickle.dump(output, file)
