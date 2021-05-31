@@ -114,7 +114,7 @@ def initial_population(batch_size, random=True, z_dim=400, datapath="", vae=None
 
     if random:
         # return K.random_normal(shape=(batch_size, z_dim), mean=0., stddev=1.)
-        return K.random_uniform(shape=(batch_size, z_dim), minval=-1.0, maxval=1.0)
+        return K.random_uniform(shape=(batch_size, z_dim), minval=-2.0, maxval=2.0)
     else:
         path2va = datapath + 'valid.tfrecords'
         tfr_va = TFRecordLoader(path2va, batch_size=batch_size)
@@ -134,8 +134,8 @@ if __name__ == "__main__":
     host = load_host(DATA_FOLDER+'cc6.pkl', BATCH_SIZE)
     vae, z_dim = load_model('logs/vae/2021-05-25/')
 
-    # noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
-    noise_t = initial_population(BATCH_SIZE, random=False, datapath=DATA_FOLDER, vae=vae)
+    noise_t = initial_population(BATCH_SIZE, random=True)
+    # noise_t = initial_population(BATCH_SIZE, False, datapath=DATA_FOLDER, vae=vae)
     _, _, initial_output = grad(noise_t, vae)
 
     with open('initial_g.p', 'wb') as file:
@@ -145,11 +145,12 @@ if __name__ == "__main__":
         pickle.dump(initial_output+host, file)
 
     for i in tqdm.tqdm(range(10000)):
-        f, grads, output= grad(noise_t, vae)
+        f, grads, output = grad(noise_t, vae)
         print(np.mean(f.numpy()))
-        noise_t -= 0.1 * grads[0].numpy()
-        noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
-        if i % 100 == 0:
+        noise_t -= 0.05 * grads[0].numpy()
+        noise_t = np.clip(noise_t, a_min=-4.0, a_max=4.0)
+
+        if i % 1000 == 0:
             with open('optimized_g.p', 'wb') as file:
                 pickle.dump(output, file)
 

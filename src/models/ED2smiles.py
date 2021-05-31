@@ -14,9 +14,11 @@
 
 import os
 import pickle
+import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers
+from tensorflow.keras import layers, activations
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.python.framework.ops import prepend_name_scope
 
 from src.utils import transform_ed
 from src.utils.callbacks import DisplayOutputs, CustomSchedule
@@ -344,7 +346,19 @@ class E2S_Transformer(tf.keras.Model):
         self.loss_metric.update_state(loss)
         return {"loss": self.loss_metric.result()}
 
-    def generate(self, batch, target_start_token_idx=30, startid=0):
+    def probabilistic_sampling(self, logits):
+        """ Performs probabilistic selection of logits, instead of argmax."""
+        logits, indices = tf.math.top_k(logits, k=9, sorted=True)
+        indices = np.asarray(indices).astype("int32")
+        preds = activations.softmax(tf.expand_dims(logits, 0))[0]
+        preds = np.asarray(preds).astype("float32")
+        tokens = []
+        for i in range(len(preds)):
+            token = np.random.choice(indices[i][-1], p=preds[i][-1])
+            tokens.append(token)
+        return np.array(tokens).reshape([len(tokens),-1])
+
+    def generate(self, batch, target_start_token_idx=30, startid=0, greedy=True):
         """Performs inference over one batch of inputs using greedy decoding."""
 
         source = batch[0]  # electron densities
@@ -361,10 +375,13 @@ class E2S_Transformer(tf.keras.Model):
             maxlen = self.target_maxlen - startid
 
         dec_logits = []
-        for i in range(maxlen):
+        for _ in range(maxlen):
             dec_out = self.decode(enc, dec_input)
             logits = self.classifier(dec_out)
-            logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            if greedy:
+                logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            else:
+                logits = self.probabilistic_sampling(logits)
             last_logit = tf.expand_dims(logits[:, -1], axis=-1)
             dec_logits.append(last_logit)
             dec_input = tf.concat([dec_input, last_logit], axis=-1)
