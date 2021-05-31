@@ -9,16 +9,15 @@
 ##########################################################################################
 
 
+from src.utils.TFRecordLoader import TFRecordLoader
+from src.datasets.utils.tokenizer import Tokenizer
+from src.models.ED2smiles import E2S_Transformer
+from rdkit.Chem import Draw
+from rdkit import Chem
+import argparse
+import pickle
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import pickle
-import argparse
-from rdkit import Chem
-from rdkit.Chem import Draw
-
-from src.models.ED2smiles import E2S_Transformer
-from src.datasets.utils.tokenizer import Tokenizer
-from src.utils.TFRecordLoader import TFRecordLoader
 
 
 def load_tokenizer(data_folder):
@@ -98,7 +97,7 @@ if __name__ == "__main__":
     # use model to generate token predictions based on the electron densities
     preds = e2s.generate([cubes, []], startid=0)
     preds = preds.numpy()
-    
+
     smiles = []  # where to store the generated smiles
     target_end_token_idx = 31  # 31 means END
 

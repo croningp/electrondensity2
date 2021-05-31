@@ -16,8 +16,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
+from src.utils.TFRecordLoader import TFRecordLoader
 from src.models.VAEresnet import VAEresnet
-from src.utils import transform_back_ed
+from src.utils import transform_ed, transform_back_ed
 
 
 def load_host(filepath, batch_size):
@@ -32,8 +33,9 @@ def load_host(filepath, batch_size):
     """
     with open(filepath, 'rb') as file:
         host = pickle.load(file)
+        host = np.tanh(host)  # tan h needed?
         host = host.astype(np.float32)
-        # tan h needed?
+
     return tf.tile(host, [batch_size, 1, 1, 1, 1])
 
 
@@ -85,41 +87,71 @@ def grad(noise, vae):
         output: a tensor with generated electron densities with shape
                 [batch_size, 64, 64, 64, 1]
     """
-    
+
     # get the electron density from the noise
     guest = vae.decoder(noise)
     guest = transform_back_ed(guest)
     # host guest interaction fitness function
-    fitness = tf.reduce_sum(guest*host, axis=[1,2,3,4,])
+    fitness = tf.reduce_sum(guest*host, axis=[1, 2, 3, 4, ])
     # calculate gradients of the fitness against the noise and return results
     gradients = tf.gradients(fitness, noise)
     return fitness, gradients, guest
 
 
+def initial_population(batch_size, random=True, z_dim=400, datapath="", vae=None):
+    """Create the initial population randomly, or use a batch of real data instead.
+
+    Args:
+        batch_size: Size of batch
+        random (bool, optional): If random is false we use batch, else we use random
+        z_dim (int, optional): Size of VAE z_dim. Only needed if radom is True
+        datapath (str, optional): Path to tfrecord, only needed if random is False
+        vae (optional): vae object, only needed if random is False
+
+    Returns:
+        latent vector of size (batch_size, z_dim)
+    """
+
+    if random:
+        # return K.random_normal(shape=(batch_size, z_dim), mean=0., stddev=1.)
+        return K.random_uniform(shape=(batch_size, z_dim), minval=-1.0, maxval=1.0)
+    else:
+        path2va = datapath + 'valid.tfrecords'
+        tfr_va = TFRecordLoader(path2va, batch_size=batch_size)
+        batch = next(tfr_va.dataset_iter)[0]
+        # pre process data
+        batch = tf.tanh(batch)
+        batch = transform_ed(batch)
+        # put through encoder and return
+        _, _, z = vae.encoder(batch)
+        return z
+
+
 if __name__ == "__main__":
 
     BATCH_SIZE = 32
-    host = load_host('/home/nvme/juanma/Data/Jarek/cc6.pkl', BATCH_SIZE)
+    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+    host = load_host(DATA_FOLDER+'cc6.pkl', BATCH_SIZE)
     vae, z_dim = load_model('logs/vae/2021-05-25/')
 
-    noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
+    # noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
+    noise_t = initial_population(BATCH_SIZE, random=False, datapath=DATA_FOLDER, vae=vae)
     _, _, initial_output = grad(noise_t, vae)
 
     with open('initial_g.p', 'wb') as file:
         pickle.dump(initial_output, file)
-        
+
     with open('initial_hg.p', 'wb') as file:
         pickle.dump(initial_output+host, file)
 
     for i in tqdm.tqdm(range(10000)):
-        f, grads, output = grad(noise_t, vae)
+        f, grads, output= grad(noise_t, vae)
         print(np.mean(f.numpy()))
         noise_t -= 0.1 * grads[0].numpy()
         noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
         if i % 100 == 0:
             with open('optimized_g.p', 'wb') as file:
                 pickle.dump(output, file)
-        
+
             with open('optimized_hg.p', 'wb') as file:
                 pickle.dump(output+host, file)
-
