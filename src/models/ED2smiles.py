@@ -348,7 +348,7 @@ class E2S_Transformer(tf.keras.Model):
 
     def probabilistic_sampling(self, logits):
         """ Performs probabilistic selection of logits, instead of argmax."""
-        logits, indices = tf.math.top_k(logits, k=9, sorted=True)
+        logits, indices = tf.math.top_k(logits, k=20, sorted=True)
         indices = np.asarray(indices).astype("int32")
         preds = activations.softmax(tf.expand_dims(logits, 0))[0]
         preds = np.asarray(preds).astype("float32")
