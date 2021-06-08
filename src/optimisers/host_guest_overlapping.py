@@ -118,7 +118,9 @@ def initial_population(batch_size, random=True, z_dim=400, datapath="", vae=None
     else:
         path2va = datapath + 'valid.tfrecords'
         tfr_va = TFRecordLoader(path2va, batch_size=batch_size)
-        batch = next(tfr_va.dataset_iter)[0]
+        # just to get different batches
+        for i in range(5):
+            batch = next(tfr_va.dataset_iter)[0]
         # pre process data
         batch = tf.tanh(batch)
         batch = transform_ed(batch)
@@ -134,8 +136,8 @@ if __name__ == "__main__":
     host = load_host(DATA_FOLDER+'cc6.pkl', BATCH_SIZE)
     vae, z_dim = load_model('logs/vae/2021-05-25/')
 
-    noise_t = initial_population(BATCH_SIZE, random=True)
-    # noise_t = initial_population(BATCH_SIZE, False, datapath=DATA_FOLDER, vae=vae)
+    # noise_t = initial_population(BATCH_SIZE, random=True)
+    noise_t = initial_population(BATCH_SIZE, False, datapath=DATA_FOLDER, vae=vae)
     _, _, initial_output = grad(noise_t, vae)
 
     with open('initial_g.p', 'wb') as file:
