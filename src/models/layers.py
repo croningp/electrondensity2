@@ -338,7 +338,7 @@ class Attention(layers.Layer):
 
 class TransformerBlock(layers.Layer):
     """ Adapted from https://keras.io/examples/nlp/text_classification_with_transformer/
-    Using the attention defined above and Conv3D instead of dense layer.
+    Using the attention defined above and Conv instead of dense layer.
     """
 
     def __init__(self,  channels, dense_factor=4, dropout=0.1):

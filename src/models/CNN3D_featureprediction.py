@@ -3,9 +3,6 @@
 # This model will aim to predict a QM9 property (a single property) from electron
 # densities. To do so, it will do the usual 3D convs, then flattened, then single output.
 #
-# I have calculated beforehand max and min alpha, to normalize it between 0 and 1.
-# max is 196.62, min is 6.31
-#
 # Author: Juan Manuel Parrilla
 #
 ##########################################################################################
@@ -60,16 +57,17 @@ class CNN3D_singleprediction():
         x = layers.Dense(units=self.dense_size, activation="relu")(x)
         x = layers.Dropout(0.3)(x)
 
-        # no activation for now, I want to see how it goes with linear.
-        outputs = layers.Dense(units=1)(x)
+        # output layer, between 0 and 1
+        outputs = layers.Dense(units=1, activation="sigmoid")(x)
 
         # create and return model
         model = keras.Model(inputs, outputs, name="3dcnn")
         return model
 
     def loss_function(self, real, pred):
-        """This is needed because I want to normalize the real data. Check comment at
-        the start of the file"""
+        """This is needed because I want to normalize the real data. 
+        I have calculated beforehand max and min alpha, to normalize it between 0 and 1.
+        max is 196.62, min is 6.31."""
 
         # normalize real between 0 and 1
         real = real - 6.31

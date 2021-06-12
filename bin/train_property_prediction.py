@@ -53,12 +53,12 @@ strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
     cnn3D = CNN3D_singleprediction(
                 cubeside = 64, 
-                filters = [64,64,128,256], 
+                filters = [32,32,64,128], 
                 strides= [2,2,2,2], 
-                dense_size = 512,
+                dense_size = 128,
         )
     
-    LEARNING_RATE = 0.0005
+    LEARNING_RATE = 0.001
     cnn3D.compile(LEARNING_RATE)
 
 print(cnn3D.model.summary())
