@@ -15,7 +15,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 from src.utils import transform_ed
-from src.models.layers import identity_block, conv_block
+from src.models.layers import identity_block, conv_block, drop_dimension
+from src.utils.callbacks import CallbackSinglePrediction
 
 
 class CNN3D_singleprediction():
@@ -51,14 +52,19 @@ class CNN3D_singleprediction():
         for i, f_s in enumerate(zip(self.filters, self.strides)):
             x = conv_block(x, 3, f_s[0], stage=i, block='a', strides=f_s[1])
             x = identity_block(x, 3, f_s[0], stage=i, block='b')
+            x = identity_block(x, 3, f_s[0], stage=i, block='c')
+            if i > 1:
+                x = drop_dimension(x)
 
         # Flatten it into 1D
-        x = layers.GlobalAveragePooling3D()(x)
+        # x = layers.GlobalAveragePooling3D()(x)
+        x = layers.Flatten()(x)
         x = layers.Dense(units=self.dense_size, activation="relu")(x)
         x = layers.Dropout(0.3)(x)
 
-        # output layer, between 0 and 1
-        outputs = layers.Dense(units=1, activation="sigmoid")(x)
+        # output layer
+        outputs = layers.Dense(units=1)(x)
+        outputs = layers.ReLU(max_value=1.0)(outputs)
 
         # create and return model
         model = keras.Model(inputs, outputs, name="3dcnn")
@@ -79,7 +85,7 @@ class CNN3D_singleprediction():
         # Compile model.
         initial_learning_rate = learning_rate
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate, decay_steps=100000, decay_rate=0.96, staircase=True
+            initial_learning_rate, decay_steps=10000, decay_rate=0.96, staircase=True
         )
         self.model.compile(
             loss=self.loss_function,
@@ -106,14 +112,18 @@ class CNN3D_singleprediction():
     def train(self, train_dataset, valid_dataset, epochs, run_folder, initial_epoch=0):
 
         checkpoint_filepath = os.path.join(
-            run_folder, "weights/weights-{epoch:03d}-{loss:.3f}-{val_loss:.3f}.h5")
+            run_folder, "weights/weights-{epoch:03d}-{loss:.4f}-{val_loss:.4f}.h5")
         checkpoint1 = keras.callbacks.ModelCheckpoint(
             checkpoint_filepath, save_weights_only=True)
         checkpoint2 = keras.callbacks.ModelCheckpoint(
             os.path.join(run_folder, 'weights/weights.h5'),
             save_weights_only=True)
 
-        callbacks_list = [checkpoint1, checkpoint2]
+        custom_callback = CallbackSinglePrediction(
+            next(valid_dataset.dataset_iter)
+        )
+
+        callbacks_list = [checkpoint1, checkpoint2, custom_callback]
 
         self.model.fit(
             train_dataset.dataset, validation_data=valid_dataset.dataset,

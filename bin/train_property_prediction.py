@@ -18,7 +18,7 @@ from src.models.CNN3D_featureprediction import CNN3D_singleprediction
 # RUN PARAMS #############################################################################
 # os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
 RUN_FOLDER = 'logs/feature_prediction/'
-mode = 'build'  # use 'build' to start train, 'load' to continue an old train
+mode = 'load'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -29,7 +29,7 @@ if mode == 'build':
         os.mkdir(os.path.join(RUN_FOLDER, 'weights'))
 
 else:  # mode == 'load'
-    RUN_FOLDER += '2021-05-25/'  # fill with the right date
+    RUN_FOLDER += '2021-06-14/'  # fill with the right date
 
 # DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'  # in DS
 DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
@@ -53,12 +53,12 @@ strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
     cnn3D = CNN3D_singleprediction(
                 cubeside = 64, 
-                filters = [32,32,64,128], 
-                strides= [2,2,2,2], 
-                dense_size = 128,
+                filters = [16,32,32,64], 
+                strides= [2,2,1,1], 
+                dense_size = 256,
         )
     
-    LEARNING_RATE = 0.001
+    LEARNING_RATE = 0.0001
     cnn3D.compile(LEARNING_RATE)
 
 print(cnn3D.model.summary())
@@ -70,6 +70,6 @@ else:
 
 # TRAINING ###############################################################################
 EPOCHS = 1000
-INITIAL_EPOCH = 0
+INITIAL_EPOCH = 118
 
 cnn3D.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, INITIAL_EPOCH)

@@ -27,6 +27,23 @@ class CustomCallback(Callback):
         self.epoch += 1
 
 
+class CallbackSinglePrediction(Callback):
+    """ Callback used on the single value prediction to output data after epochs
+    """
+
+    def __init__(self, batch, print_screen=5, print_every_n_epochs=5):
+        self.batch = batch[0]  # [0] is electron densities
+        self.print_screen = print_screen
+        self.print_every_n_epochs = print_every_n_epochs
+
+    def on_epoch_end(self, epoch, logs={}):
+        if epoch % self.print_every_n_epochs == 0:
+            preds = self.model(self.batch).numpy()
+            preds = preds * (196.62-6.31)
+            preds += 6.31
+            print(preds[:self.print_screen])
+
+
 class DisplayOutputs(Callback):
     def __init__(
         self, batch, idx_to_token, target_start_token_idx=30, target_end_token_idx=31,
