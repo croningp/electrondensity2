@@ -21,7 +21,7 @@ from src.utils.callbacks import CallbackSinglePrediction
 
 class CNN3D_singleprediction():
 
-    def __init__(self, cubeside, filters, strides, dense_size):
+    def __init__(self, cubeside, filters, strides, dense_size, usetanh=True):
         """Stores the parameters and calls _build, which is the function that builds the
         model.
 
@@ -30,22 +30,24 @@ class CNN3D_singleprediction():
             filters: List with the size of the filters to use in the convolutions.
             strides: List with the size of the strides to use in the convolutions.
             dense_size: Number of neurons in the last dense layer before outputs.
+            usetanh: If to use tanh during data preprocessing
         """
 
         self.size = cubeside
         self.filters = filters
         self.strides = strides
         self.dense_size = dense_size
-        self.model = self._build()
+        self.model = self._build(usetanh)
 
-    def _build(self):
+    def _build(self, usetanh):
         """Build a 3D convolutional NN."""
 
         inputs = keras.Input((self.size, self.size, self.size, 1))
         x = inputs
 
         # First we do the pre-processing Jarek was doing
-        x = tf.tanh(x)
+        if usetanh:
+            x = tf.tanh(x)
         x = transform_ed(x)
 
         # Do the 3D convolutions
