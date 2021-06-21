@@ -95,7 +95,7 @@ if __name__ == "__main__":
         cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
-    preds = e2s.generate([cubes, []], startid=0, greedy=True)
+    preds = e2s.generate([cubes, []], startid=0, greedy=False)
     preds = preds.numpy()
 
     smiles = []  # where to store the generated smiles

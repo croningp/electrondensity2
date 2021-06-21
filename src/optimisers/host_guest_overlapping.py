@@ -76,11 +76,12 @@ def load_model(modelpath):
 
 
 @tf.function
-def grad(noise, vae):
+def grad(noise, vae, host):
     """Computes the gradient of fintess function with respect to latent z
     Args:
         noise: a tensor with hidden noise z of shape [batch_size, noise_size]
         vae: the variational autoencoder. we will use the decoder to generate electron den
+        host: the loaded host molecule
     Returns:
         fitness: tensor with current fitness
         gradients: a tensor with shape[batch_size, noise_size]
@@ -138,7 +139,7 @@ if __name__ == "__main__":
 
     # noise_t = initial_population(BATCH_SIZE, random=True)
     noise_t = initial_population(BATCH_SIZE, False, datapath=DATA_FOLDER, vae=vae)
-    _, _, initial_output = grad(noise_t, vae)
+    _, _, initial_output = grad(noise_t, vae, host)
 
     with open('initial_g.p', 'wb') as file:
         pickle.dump(initial_output, file)
