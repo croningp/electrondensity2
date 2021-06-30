@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     BATCH_SIZE = 32
     DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
-    host = load_host(DATA_FOLDER+'cc6.pkl', BATCH_SIZE)
+    host = load_host(DATA_FOLDER+'cage.pkl', BATCH_SIZE)
     vae, z_dim = load_VAEmodel('logs/vae/2021-05-25/')
     cnn3d = load_PredictionModel('logs/feature_prediction/2021-06-14')
 

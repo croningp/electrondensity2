@@ -21,19 +21,21 @@ from src.models.VAEresnet import VAEresnet
 from src.utils import transform_ed, transform_back_ed
 
 
-def load_host(filepath, batch_size):
+def load_host(filepath, batch_size, tanh=True):
     """Loads host saved as pickle file. The host pickles were prepared by Jarek.
 
     Args:
         filepath: Path to the pickle file that contains the host molecule
         batch_size: As the name says, batch size.
+        tanh: If doing a tanh after loading the molecule.
 
     Returns:
         Returns the host repeated batch_size times
     """
     with open(filepath, 'rb') as file:
         host = pickle.load(file)
-        host = np.tanh(host)  # tan h needed?
+        if tanh:
+            host = np.tanh(host)  # tan h needed?
         host = host.astype(np.float32)
 
     return tf.tile(host, [batch_size, 1, 1, 1, 1])

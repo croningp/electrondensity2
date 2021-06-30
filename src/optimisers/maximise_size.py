@@ -75,22 +75,21 @@ def grad(noise, vae):
 
 if __name__ == "__main__":
 
-    BATCH_SIZE = 32
+    BATCH_SIZE = 50
     vae, z_dim = load_model('logs/vae/2021-05-25/')
 
-    noise_t = K.random_normal(shape=(BATCH_SIZE, z_dim), mean=0., stddev=1.)
+    noise_t = K.random_uniform(shape=(BATCH_SIZE, z_dim), minval=-4.0, maxval=4.0)
     _, _, initial_output = grad(noise_t, vae)
 
     with open('initial.p', 'wb') as file:
         pickle.dump(initial_output, file)
 
-    for i in tqdm.tqdm(range(1000)):
+    for i in tqdm.tqdm(range(10000)):
         f, grads, output = grad(noise_t, vae)
         print(np.mean(f.numpy()))
-        noise_t += 0.005 * grads[0].numpy()
-        # clip the noise to -1. 1. to prevent from driffting from normal distribution
-        noise_t = np.clip(noise_t, a_min=-1.0, a_max=1.0)
+        noise_t += 0.001 * grads[0].numpy()
+        # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
-        if i % 100 == 0:
+        if i % 500 == 0:
             with open('optimized.p', 'wb') as file:
                 pickle.dump(output, file)
