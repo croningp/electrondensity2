@@ -86,6 +86,8 @@ if __name__ == "__main__":
 
     # load the model
     e2s, batch = load_model('logs/e2s/2021-05-20/', DATA_FOLDER)
+    # e2s, batch = load_model('logs/e2s/2021-05-14/', DATA_FOLDER)
+
 
     # load tokenizer
     toks = load_tokenizer(DATA_FOLDER)
@@ -95,7 +97,7 @@ if __name__ == "__main__":
         cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
-    preds = e2s.generate([cubes, []], startid=0, greedy=False)
+    preds = e2s.generate([cubes, []], startid=0, greedy=True)
     preds = preds.numpy()
 
     smiles = []  # where to store the generated smiles

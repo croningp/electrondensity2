@@ -103,27 +103,30 @@ if __name__ == "__main__":
     with open('initial_hg.p', 'wb') as file:
         pickle.dump(initial_output+host, file)
 
+    # First we try to maximise size of molecule
+    for i in tqdm.tqdm(range(5000)):
+        f, grads, output = grad_size(noise_t, vae)
+        print("size "+str(np.mean(f.numpy())))
+        noise_t += 0.01 * grads[0].numpy()
+        noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+
+        if i % 500 == 0:
+            with open('optimized_size.p', 'wb') as file:
+                pickle.dump(output, file)
+
+    # Now we will minimize overlapping
     # we will do five cycles of optimising for both
-    for i in range(5):
-
-        # try to maximise size of molecule
-        for i in tqdm.tqdm(range(1000)):
-            f, grads, output = grad_size(noise_t, vae)
-            print(np.mean(f.numpy()))
-            noise_t += 0.01 * grads[0].numpy()
-
-            if i % 1000 == 0:
-                with open('optimized_size.p', 'wb') as file:
-                    pickle.dump(output, file)
+    for factor in [1, 5, 10, 20, 50]:
+        lr = 0.1 / factor
 
         # try to minimise overlapping
-        for i in tqdm.tqdm(range(1000)):
-            f, grads, output = grad_overlapping(noise_t, vae)
-            print(np.mean(f.numpy()))
-            noise_t -= 0.05 * grads[0].numpy()
-            # noise_t = np.clip(noise_t, a_min=-4.0, a_max=4.0)
+        for j in tqdm.tqdm(range(int(8000/factor))):
+            f, grads, output = grad_overlapping(noise_t, vae, host)
+            print("overlapping "+str(np.mean(f.numpy())))
+            noise_t -= lr * grads[0].numpy()
+            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
-            if i % 1000 == 0:
+            if j % 1000 == 0:
                 with open('optimized_g.p', 'wb') as file:
                     pickle.dump(output, file)
 
