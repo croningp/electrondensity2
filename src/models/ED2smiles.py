@@ -150,7 +150,7 @@ class ElectronDensityEmbeddingV3(layers.Layer):
         super().__init__()
 
         self.conv32 = ConvBlock(
-            kernel_size=3, filters=num_hid, stage=0, block='a', strides=2)
+            kernel_size=3, filters=num_hid, stage=0, block='a', strides=[2, 2, 1])
         self.conv16 = ConvBlock(kernel_size=3, filters=num_hid, stage=1, block='a',
                                 strides=[2, 2, 1])
         self.conv8 = ConvBlock(kernel_size=3, filters=num_hid, stage=2, block='a',
@@ -458,12 +458,12 @@ class E2S_Transformer(tf.keras.Model):
 
     def train(
         self, train_dataset, valid_dataset, epochs, run_folder, tokenizer,
-        initial_epoch=0, print_every_n_epochs=1
+        initial_epoch=3, print_every_n_epochs=1
     ):
 
         display_cb = DisplayOutputs(
             next(valid_dataset.dataset_iter), tokenizer.num2token, run_folder=run_folder,
-            generate_from=2
+            generate_from=0
         )
 
         checkpoint_filepath = os.path.join(
@@ -478,5 +478,6 @@ class E2S_Transformer(tf.keras.Model):
 
         self.fit(
             train_dataset.dataset, validation_data=valid_dataset.dataset,
+            # steps_per_epoch=1, validation_steps=1,
             epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks_list
         )

@@ -13,9 +13,9 @@ from src.models.ED2smiles import E2S_Transformer
 from src.datasets.utils.tokenizer import Tokenizer
 
 # RUN PARAMS #############################################################################
-# os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
 RUN_FOLDER = 'logs/e2s/'
-mode = 'load'  # use 'build' to start train, 'load' to continue an old train
+mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -29,15 +29,15 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-20/'  # fill with the right date
 
-DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
-# DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'  # in dragonsoop
+# DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'  # in auchentoshan
+DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'  # in dragonsoop
 
 # DATA ###################################################################################
 # paths to the train and validation sets
 path2tf = DATA_FOLDER + 'train.tfrecords'
 path2va = DATA_FOLDER + 'valid.tfrecords'
 # load train and validation sets
-tfr = TFRecordLoader(path2tf, batch_size=64, properties=['smiles'])
+tfr = TFRecordLoader(path2tf, batch_size=64, train=True, properties=['smiles'])
 tfr_va = TFRecordLoader(path2va, batch_size=32, properties=['smiles'])
 
 # path to smiles tokenizer
@@ -53,7 +53,7 @@ strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
     e2s = E2S_Transformer(
             num_hid=128,
-            num_head=2,
+            num_head=8,
             num_feed_forward=512,
             num_layers_enc=6,
             num_layers_dec=6,

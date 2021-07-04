@@ -102,7 +102,7 @@ class DisplayOutputs(Callback):
 
             if i < self.print_screen:  # print on screen some of the smiles
                 # add white space to make more obvious seed and prediction
-                wpos = self.genfrom - 1  # because we removed before the START token
+                wpos = max(0, self.genfrom - 1)  # because we removed before the START token
                 target_text = target_text[:wpos] + ' ' + target_text[wpos:]
                 prediction = prediction[:wpos] + ' ' + prediction[wpos:]
                 print(f"target:     {target_text}")
