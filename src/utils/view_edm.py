@@ -11,26 +11,7 @@ import argparse
 
 from orbkit import grid, output
 
-
-def set_grid(n_points, step_size):
-    """Sets and initilizes the grid of the orbkit.
-    This works by modifying directly the grid modules variables.
-    This function was originally in branch develop, and inside input.cube.
-    I (me juanma) copied this function here so that I don't need to import the whole file.
-
-    Args:
-        n_points: int number of points in the grid cube along each face
-        step_size: float specifies the grid spacing (Bohr)
-
-    Returns:
-        bbox: an array with grid boundaries for each axis
-    """
-
-    # set the grid for calculation
-    grid.N_ = [n_points] * 3
-    grid.min_ = [-n_points / 2 * step_size + step_size/2] * 3
-    grid.max_ = [n_points / 2 * step_size - step_size/2] * 3
-    grid.delta_ = [step_size] * 3
+from src.datasets.utils.orbkit import set_grid
 
 
 if __name__ == "__main__":
