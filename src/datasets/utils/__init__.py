@@ -14,7 +14,7 @@ def download_and_unpack(url, destdir):
     
     r = requests.get(url, stream=True)
     total_size = int(r.headers.get('Content-Length'))
-    file_name = r.url.split('/')[-1]
+    file_name = r.url.split('?')[0].split('/')[-1]
     file_path = os.path.join(destdir, file_name)
     initial_pos = 0
     

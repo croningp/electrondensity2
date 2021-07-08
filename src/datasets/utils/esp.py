@@ -6,11 +6,63 @@ from scipy.spatial.distance import cdist
 
 from orbkit import read, grid, display, core
 
-from src.datasets.utils.orbkit import check_grid
+# from src.datasets.utils.orbkit import check_grid
 
 Data = namedtuple(
     'Data', ('density', 'HOMO_LUMO_gap', 'n_points', 'step_size')
 )
+
+def set_grid(n_points, step_size):
+    """Sets and initilizes the grid of the orbkit
+    this works by modifying directly the grid modules variables.
+
+    Args:
+        n_points: int number of points in the grid cube along each face
+        step_size: float specifies the grid spacing (Bohr)
+
+    Returns:
+        bbox: an array with grid boundaries for each axis
+    """
+
+    # set the grid for calculation
+    grid.N_ = [n_points] * 3
+    grid.min_ = [-n_points / 2 * step_size + step_size/2] * 3
+    grid.max_ = [n_points/2 * step_size - step_size/2] * 3
+    grid.delta_ = [step_size] * 3
+
+
+def check_grid(qc, n_points, step_size):
+    """Checks if molecule will fit into the target grid
+
+       Args:
+           qc: orbkit object with parsed log file
+           n_points: int number of points in the grid cube along each face
+           step_size: float specifies the grid spacing (Bohr)
+
+         Returns:
+             boolean: True if the target_grid is bigger or equal molecular 
+             box else False
+    """
+    grid.adjust_to_geo(qc, extend=2.0, step=step_size)
+    grid.grid_init(force=True)
+    display.display(grid.get_grid())
+    molecule_bbox = grid.get_bbox()
+
+    set_grid(n_points=n_points, step_size=step_size)
+    grid.grid_init(force=True)
+    display.display(grid.get_grid())
+    target_bbox = grid.get_bbox()
+
+    # reshape for each axis
+    molecule_bbox = molecule_bbox.reshape((-1, 2))
+    target_bbox = target_bbox.reshape((-1, 2))
+    # for each dimension
+    for i in range(3):
+        if molecule_bbox[i][0] < target_bbox[i][0]:
+            return False
+        if molecule_bbox[i][1] > target_bbox[i][1]:
+            return False
+    return True
 
 
 def parse_log_file(path, property_fn,  n_points=64, step_size=0.625):

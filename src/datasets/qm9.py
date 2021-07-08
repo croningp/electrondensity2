@@ -17,6 +17,7 @@ from src import CPU_COUNT
 from src.utils import canonical_smiles
 from src.datasets import Dataset
 from src.datasets.utils import download_and_unpack
+from src.datasets.utils.esp import ESP
 from src.datasets.utils.xtb import prepare_xtb_input, run_xtb
 from src.datasets.utils.orbkit import electron_density_from_molden
 from src.datasets.utils.tokenizer import Tokenizer
@@ -90,6 +91,8 @@ class QM9Dataset(Dataset):
         self.n_points = n_points
         self.step_size = step_size
         self.url = "https://ndownloader.figshare.com/files/3195389"
+
+        self.esp = ESP()  # class to calculate the electrostatic potentials
         
     @property
     def name(self):
@@ -137,10 +140,13 @@ class QM9Dataset(Dataset):
         xtb_exec_path = shutil.which('xtb')
         run_xtb(xtb_exec_path, xtb_input_file_path, output_dir, molden=True)
         molden_input = os.path.join(output_dir, 'molden.input')
-        rho = electron_density_from_molden(molden_input, n_points=self.n_points,
-                                           step_size=self.step_size)
+        # rho = electron_density_from_molden(molden_input, n_points=self.n_points,
+        #                                    step_size=self.step_size)
+        molecule_esp = self.esp.calculate_esp_grid(molden_input)
+
         output_dict = {}
-        output_dict['electron_density'] = rho
+        # output_dict['electron_density'] = rho
+        output_dict['electrostatic_potential'] = molecule_esp
         output_dict['properties'] = properties
         output_dict['smiles'] = smiles
         output_dict['num_atoms'] = int(num_atoms)
@@ -155,7 +161,7 @@ class QM9Dataset(Dataset):
         
         """
     
-        qm9_files = os.listdir(self.sourcedir)[:100]
+        qm9_files = os.listdir(self.sourcedir)[:10]
         for qm9_file in tqdm(qm9_files, desc='Generating electron density'):
             self._parse_single_qm9_file(qm9_file)
             
