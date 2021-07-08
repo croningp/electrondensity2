@@ -135,7 +135,7 @@ class ESP:
         grid segment volume
         '''
 
-        x, y, z = np.array(density_grid.shape) - 1
+        x, y, z = np.array(density_grid.shape) #- 1
         av_grid = np.zeros((x, y, z))
 
         lims = list(zip(range(0, density_grid.shape[0]-1),
@@ -190,12 +190,14 @@ class ESP:
         q_el = self.av_grid.flatten()
         pots_el = np.divide(q_el, r_el)
         pots_el[pots_el == np.inf] = 0
+        pots_el[np.isnan(pots_el)] = 0
         summed_el = np.sum(pots_el, axis=1)
 
         # calc interaction with nuclei
         r_nuc = cdist(coord_seg, coord_nuc)
         pots_nuc = np.divide(z_nuc, r_nuc)
         pots_nuc[pots_nuc == np.inf] = 0
+        pots_nuc[np.isnan(pots_nuc)] = 0
         summed_nuc = np.sum(pots_nuc, axis=1)
 
         # calculate total potential
@@ -265,3 +267,14 @@ class ESP:
             esp_grid[x1:y1, x2:y2, x3:y3] = esp_seg
 
         return esp_grid
+
+    def calculate_espcube_from_xtb(self, esp_xtb):
+
+        data = np.genfromtxt(esp_xtb)
+        cube = np.zeros((64,64,64))
+
+        for entry in data:
+            x, y, z, e = entry
+            cube[int(x)+15, int(y)+15, int(z)+15] += e
+
+        return cube

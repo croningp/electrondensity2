@@ -12,6 +12,9 @@ from tqdm import tqdm
 
 def download_and_unpack(url, destdir):
     
+    if os.path.exists(destdir):
+        return
+        
     r = requests.get(url, stream=True)
     total_size = int(r.headers.get('Content-Length'))
     file_name = r.url.split('?')[0].split('/')[-1]

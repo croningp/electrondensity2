@@ -152,8 +152,9 @@ class Tokenizer(object):
 
         tokens = ['START'] + tokenize_smiles(smiles) + ['STOP']
         num_tokens = len(tokens)
-        if self.max_length - num_tokens < 0:
-            raise ValueError('The lenght of smiles {} is larger then max {}'.format(smiles, num_tokens))
+        # if self.max_length - num_tokens < 0:
+        #     raise ValueError('The lenght of smiles {} is larger then max {}'.format(smiles, num_tokens))
+        #     return
         append_tokens = ['NULL'] * (self.max_length - num_tokens)
         tokens += append_tokens
         encoded_smiles = list(map(self.token2num.get, tokens))

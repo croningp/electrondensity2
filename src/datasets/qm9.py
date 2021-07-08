@@ -92,7 +92,7 @@ class QM9Dataset(Dataset):
         self.step_size = step_size
         self.url = "https://ndownloader.figshare.com/files/3195389"
 
-        self.esp = ESP()  # class to calculate the electrostatic potentials
+        self.esp = ESP(n_points, step_size)  # class to calculate the electrostatic potentials
         
     @property
     def name(self):
@@ -138,14 +138,15 @@ class QM9Dataset(Dataset):
         prepare_xtb_input(coords, xtb_input_file_path)
         output_dir = os.path.abspath(output_dir)
         xtb_exec_path = shutil.which('xtb')
-        run_xtb(xtb_exec_path, xtb_input_file_path, output_dir, molden=True)
+        run_xtb(xtb_exec_path, xtb_input_file_path, output_dir, molden=True, esp=True)
         molden_input = os.path.join(output_dir, 'molden.input')
-        # rho = electron_density_from_molden(molden_input, n_points=self.n_points,
-        #                                    step_size=self.step_size)
-        molecule_esp = self.esp.calculate_esp_grid(molden_input)
+        rho = electron_density_from_molden(molden_input, n_points=self.n_points,
+                                           step_size=self.step_size)
+        espxtb_input = os.path.join(output_dir, 'xtb_esp.dat')
+        molecule_esp = self.esp.calculate_espcube_from_xtb(espxtb_input)
 
         output_dict = {}
-        # output_dict['electron_density'] = rho
+        output_dict['electron_density'] = rho
         output_dict['electrostatic_potential'] = molecule_esp
         output_dict['properties'] = properties
         output_dict['smiles'] = smiles
@@ -161,7 +162,7 @@ class QM9Dataset(Dataset):
         
         """
     
-        qm9_files = os.listdir(self.sourcedir)[:10]
+        qm9_files = os.listdir(self.sourcedir)[:5]
         for qm9_file in tqdm(qm9_files, desc='Generating electron density'):
             self._parse_single_qm9_file(qm9_file)
             

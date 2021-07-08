@@ -45,6 +45,7 @@ def run_xtb(
     xyz_file: str,
     save_folder: str,
     molden: bool = False,
+    esp: bool = False,
     opt: bool = False
 ):
     """Run XTB job on given xtb input file, saving output to a given
@@ -62,6 +63,8 @@ def run_xtb(
     cmd = [os.path.abspath(xtb_file), os.path.abspath(xyz_file)]
     if molden:
         cmd.append('--molden')
+    if esp:
+        cmd.append('--esp')
     if opt:
         cmd.append('--opt')
     sub.Popen(
