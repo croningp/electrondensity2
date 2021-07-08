@@ -150,7 +150,7 @@ class ElectronDensityEmbeddingV3(layers.Layer):
         super().__init__()
 
         self.conv32 = ConvBlock(
-            kernel_size=3, filters=num_hid, stage=0, block='a', strides=[2, 2, 1])
+            kernel_size=3, filters=num_hid, stage=0, block='a', strides=[2, 2, 2])
         self.conv16 = ConvBlock(kernel_size=3, filters=num_hid, stage=1, block='a',
                                 strides=[2, 2, 1])
         self.conv8 = ConvBlock(kernel_size=3, filters=num_hid, stage=2, block='a',
@@ -194,15 +194,16 @@ class ElectronDensityEmbeddingV3(layers.Layer):
         x = self.id8(x)
         # now from 8,8,32,1 to 4,4,32,num_hid
         x = self.conv4(x)
-        x = self.id4(x)
+        # x = self.id4(x)
         # now from 4,4,32,num_hid to 2,2,32,num_hid
         x = self.conv2(x)
-        x = self.id2(x)
+        # x = self.id2(x)
         # now from 2,2,32,num_hid to 1,1,32,num_hid
         x = self.conv1(x)
         x = self.id1(x)
 
         return tf.squeeze(x, [1, 2])
+
 
 class TransformerEncoder(layers.Layer):
     def __init__(self, embed_dim, num_heads, feed_forward_dim, rate=0.1):

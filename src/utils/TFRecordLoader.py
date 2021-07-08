@@ -90,8 +90,7 @@ class TFRecordLoader():
             mirror_cond = tf.less(uniform_random, 0.5)
 
             electron_density = tf.cond(
-                mirror_cond, lambda: tf.reverse(
-                    electron_density, [flip_index]),
+                mirror_cond, lambda: tf.reverse(electron_density, [flip_index]),
                 lambda: electron_density)
 
         # random rotation
@@ -140,9 +139,9 @@ class TFRecordLoader():
             properties (list, optional): Check parse_fn above
         """
         dataset = self.load_dataset(properties)
+        dataset = dataset.shuffle(2048)
 
         if train:
-            dataset = dataset.shuffle(2048)
             dataset = dataset.map(
                 map_func=self.train_preprocess, num_parallel_calls=self.AUTOTUNE)
 

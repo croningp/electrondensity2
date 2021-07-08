@@ -52,11 +52,11 @@ strategy = tf.distribute.MirroredStrategy()
 
 with strategy.scope():
     e2s = E2S_Transformer(
-            num_hid=128,
-            num_head=8,
+            num_hid=64,
+            num_head=4,
             num_feed_forward=512,
-            num_layers_enc=6,
-            num_layers_dec=6,
+            num_layers_enc=2,
+            num_layers_dec=2,
             )
     e2s.compile_model()
 
