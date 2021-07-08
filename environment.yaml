@@ -4,7 +4,7 @@ channels:
     - rdkit
     - conda-forge
 dependencies:
-    - python
+    - python=3.9
     - ipython
     - tqdm
     - rdkit
