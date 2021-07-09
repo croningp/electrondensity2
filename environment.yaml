@@ -13,6 +13,7 @@ dependencies:
     - argh
     - matplotlib
     - scipy
+    - cython
     - pip
     - pip:
       - tensorflow

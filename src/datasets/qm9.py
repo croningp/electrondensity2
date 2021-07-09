@@ -162,7 +162,7 @@ class QM9Dataset(Dataset):
         
         """
     
-        qm9_files = os.listdir(self.sourcedir)[:20]
+        qm9_files = os.listdir(self.sourcedir)#[:20]
         for qm9_file in tqdm(qm9_files, desc='Generating electron density'):
             self._parse_single_qm9_file(qm9_file)
             
