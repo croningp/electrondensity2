@@ -269,12 +269,30 @@ class ESP:
         return esp_grid
 
     def calculate_espcube_from_xtb(self, esp_xtb):
+        """ Given the electrstatic potential array built using xtb (option --esp), this
+        function will place the sparse array into a cube.
 
+        Args:
+            esp_xtb: File as generated using "xtb --esp"
+
+        Returns:
+            cube with positions filled using data from the xtb array
+        """
+
+        # read xtb file, which contains sparse xyz and their charge
         data = np.genfromtxt(esp_xtb)
+        # create canvas cube with all 0s
         cube = np.zeros((64,64,64))
+        # use step size to see how big is a voxel
+        factor = 1/self.step_size
+        center = self.n_points//2
 
         for entry in data:
             x, y, z, e = entry
-            cube[int(x)+15, int(y)+15, int(z)+15] += e
+            # adjust coordinates to cube
+            x = int(x*factor+center)
+            y = int(y*factor+center)
+            z = int(z*factor+center)
+            cube[x, y, z] += e
 
         return cube
