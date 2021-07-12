@@ -137,7 +137,7 @@ class QM9Dataset(Dataset):
         qm9_file_path = os.path.join(self.sourcedir, qm9_file)
         file_id = qm9_file.strip('.xyz').split('_')[1]
         output_dir = os.path.join(self.output_dir, file_id)
-        if os.path.exists(output_dir) or not rewrite:
+        if os.path.exists(output_dir) and not rewrite:
             logger.info(f'Folder {output_dir} exists. Not re-doing it.')
             return
         os.makedirs(output_dir, exist_ok=True)
