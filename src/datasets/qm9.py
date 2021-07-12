@@ -14,6 +14,7 @@ import numpy as np
 from tqdm import tqdm
 
 from src import CPU_COUNT
+from src.datasets.utils import esp
 from src.utils import canonical_smiles
 from src.datasets import Dataset
 from src.datasets.utils import download_and_unpack
@@ -118,36 +119,50 @@ class QM9Dataset(Dataset):
             os.mkdir(self.output_dir)
             
     
-    def _parse_single_qm9_file(self, qm9_file: str):
+    def _parse_single_qm9_file(self, qm9_file: str, rewrite: bool = True, esp: bool=True):
         
         """Computes electron desnity, extracts properties and SMILES string 
         from a qm9 xyz file. Results are stores in the the pickle file.
        
             Args:
                 qm9_file (str): a path to qm9 xyz file to process
+                rewrite (bool): If true (default) it will redo the folder. If false, if
+                            the folder exists, it won't do anything and leave it as it is.
+                esp (bool): If using xtb to calculate electrostatic potentials
             Returns:
                     None
         """
-                
+
+        # First prepare the path to the qm9 file, and prepare the output folder         
         qm9_file_path = os.path.join(self.sourcedir, qm9_file)
         file_id = qm9_file.strip('.xyz').split('_')[1]
         output_dir = os.path.join(self.output_dir, file_id)
+        if os.path.exists(output_dir) or not rewrite:
+            logger.info(f'Folder {output_dir} exists. Not re-doing it.')
+            return
         os.makedirs(output_dir, exist_ok=True)
+
+        # read qm9 file, prepare and execute xtb
         num_atoms, properties, coords, _, smiles = read_qm9_file(qm9_file_path)
         xtb_input_file_path = os.path.join(output_dir, 'input.xtb')
         prepare_xtb_input(coords, xtb_input_file_path)
         output_dir = os.path.abspath(output_dir)
         xtb_exec_path = shutil.which('xtb')
-        run_xtb(xtb_exec_path, xtb_input_file_path, output_dir, molden=True, esp=True)
+        run_xtb(xtb_exec_path, xtb_input_file_path, output_dir, molden=True, esp=esp)
+
+        # calculate electron density using orbkit, from xtb results
         molden_input = os.path.join(output_dir, 'molden.input')
         rho = electron_density_from_molden(molden_input, n_points=self.n_points,
                                            step_size=self.step_size)
         espxtb_input = os.path.join(output_dir, 'xtb_esp.dat')
-        molecule_esp = self.esp.calculate_espcube_from_xtb(espxtb_input)
+        # calculate esp cube from xtb
+        if esp:
+            molecule_esp = self.esp.calculate_espcube_from_xtb(espxtb_input)
 
         output_dict = {}
         output_dict['electron_density'] = rho
-        output_dict['electrostatic_potential'] = molecule_esp
+        if esp:
+            output_dict['electrostatic_potential'] = molecule_esp
         output_dict['properties'] = properties
         output_dict['smiles'] = smiles
         output_dict['num_atoms'] = int(num_atoms)
@@ -155,16 +170,21 @@ class QM9Dataset(Dataset):
         with open(output_file, 'wb+') as ofile:
             pickle.dump(output_dict, ofile)
 
-    def _compute_electron_density(self):
+    def _compute_electron_density(self, rewrite: bool = True, esp: bool=True):
         """
         Computes electron density for each molecules in the dataset
         using Semiempirical Extended Tight-Binding method and orbkit.
+
+            Args:
+                rewrite (bool): If true (default) it will redo the folder. If false, if
+                    the folder exists, it won't do anything and leave it as it is.
+                esp (bool): If using xtb to calculate electrostatic potentials
         
         """
     
         qm9_files = os.listdir(self.sourcedir)#[:20]
         for qm9_file in tqdm(qm9_files, desc='Generating electron density'):
-            self._parse_single_qm9_file(qm9_file)
+            self._parse_single_qm9_file(qm9_file, rewrite=rewrite, esp=esp)
             
     def _initialize_tokenizer(self):
         """
@@ -237,7 +257,7 @@ class QM9Dataset(Dataset):
         logger.info('Downloading and extracting QM9 dataset')
         download_and_unpack(self.url, self.sourcedir)
         logger.info('Computing electron densities')
-        self._compute_electron_density()
+        self._compute_electron_density(rewrite=False, esp=True)
         logger.info('Creating dataset SMILES tokenizer')
         self._initialize_tokenizer()
         logger.info('Splitting and serializing dataset into tfrecords')

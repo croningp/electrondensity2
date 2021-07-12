@@ -7,13 +7,17 @@ Created on Tue Mar  2 12:22:51 2021
 import os
 import requests
 import tarfile
+import logging
 
 from tqdm import tqdm
 
+logger = logging.getLogger(__name__)
+
 def download_and_unpack(url, destdir):
     
-    # if os.path.exists(destdir):
-    #     return
+    if os.path.exists(destdir):
+        logger.info('Dataset already downloaded and unpacked')
+        return
         
     r = requests.get(url, stream=True)
     total_size = int(r.headers.get('Content-Length'))
