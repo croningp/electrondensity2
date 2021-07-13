@@ -47,11 +47,14 @@ class TFRecordLoader():
             (density, *properties): parsed tfrecord and the properties
         """
 
-        features = {'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32), }
+        features = {'density': tf.io.FixedLenFeature([64, 64, 64], tf.float32), 
+                    'electrostatic_potential': tf.io.FixedLenFeature([64, 64, 64], tf.float32)}
 
         for prop in properties:
             if prop == 'num_atoms':
                 features[prop] = tf.io.FixedLenFeature([1], tf.int64)
+            # elif prop == 'electrostatic_potential':
+            #     features[prop] = tf.io.FixedLenFeature([64, 64, 64], tf.float32)
             elif prop == 'smiles':
                 features[prop] = tf.io.FixedLenFeature([24], tf.int64)
             elif prop == 'fp':
