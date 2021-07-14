@@ -37,7 +37,7 @@ def prepare_TFRecord(data, tokenizer, esp):
     record_dict = {'density': density,}
 
     if esp:
-        esp = wrap_float_list(data['electron_density'].reshape(-1))
+        esp = wrap_float_list(data['electrostatic_potential'].reshape(-1))
         record_dict['electrostatic_potential'] = esp
     
     for key in data['properties']:
