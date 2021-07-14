@@ -14,6 +14,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 
 import numpy as np
+import pickle
 
 from src.models.VAE import VariationalAutoencoder, Sampling, VAEModel
 from src.models.layers import identity_block, conv_block
