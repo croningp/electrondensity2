@@ -71,7 +71,7 @@ class VAEModel(Model):
 
     def losses(self, data):
         """ KL loss + reconstruction loss"""
-        data = self.preprocess_data(data)
+        data = self.preprocess_data(data[0])
         z_mean, z_log_var, z = self.encoder(data)
         reconstruction = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
@@ -85,8 +85,6 @@ class VAEModel(Model):
         return total_loss, reconstruction_loss, kl_loss
 
     def train_step(self, data):
-        if isinstance(data, tuple):
-            data = data[0]
         with tf.GradientTape() as tape:
             total_loss, reconstruction_loss, kl_loss = self.losses(data)
         grads = tape.gradient(total_loss, self.trainable_weights)
@@ -102,8 +100,6 @@ class VAEModel(Model):
         }
 
     def test_step(self, data):
-        if isinstance(data, tuple):
-            data = data[0]
         total_loss, reconstruction_loss, kl_loss = self.losses(data)
         # update the trackers
         self.total_loss_tracker.update_state(total_loss)
