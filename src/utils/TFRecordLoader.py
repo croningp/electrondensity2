@@ -52,6 +52,8 @@ class TFRecordLoader():
         for prop in properties:
             if prop == 'num_atoms':
                 features[prop] = tf.io.FixedLenFeature([1], tf.int64)
+            elif prop == 'electrostatic_potential':
+                features[prop] = tf.io.FixedLenFeature([64, 64, 64], tf.float32)
             elif prop == 'smiles':
                 features[prop] = tf.io.FixedLenFeature([24], tf.int64)
             elif prop == 'fp':
@@ -63,13 +65,22 @@ class TFRecordLoader():
 
         parsed_example = tf.io.parse_single_example(
             serialized, features=features)
-        density = parsed_example['density']
 
+        density = parsed_example['density']
         if expand_dims:
             density = tf.expand_dims(density, axis=-1)
 
-        properties = [parsed_example[p] for p in properties]
-        return (density, *properties)
+        if 'electrostatic_potential' in properties:
+            esp = parsed_example['electrostatic_potential']
+            esp = tf.expand_dims(esp, axis=-1)
+
+        parsed_properties = [parsed_example[p] for p in properties if p != 'electrostatic_potential' ]
+
+        if 'electrostatic_potential' in properties:
+            return (density, esp, *parsed_properties)
+        else:
+            return (density, *parsed_properties)
+
 
     def train_preprocess(self, electron_density, *args):
         """Augments the dataset by flipping the electron density

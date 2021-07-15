@@ -2,6 +2,7 @@ import os
 import subprocess as sub
 import numpy as np
 
+
 def prepare_xtb_input(coordinates, output_path):
     """
     Prepares xtb input file from xyz input. 
@@ -16,7 +17,7 @@ def prepare_xtb_input(coordinates, output_path):
     Returns:
         None
     """
-    
+
     coordinates = [c[1:]+[c[0]] for c in coordinates]
     coordinates_xyz = [c[:-1] for c in coordinates]
     coordinates_xyz = np.array([[float(f) for f in c] for c in coordinates_xyz])
@@ -45,6 +46,7 @@ def run_xtb(
     xyz_file: str,
     save_folder: str,
     molden: bool = False,
+    esp: bool = False,
     opt: bool = False
 ):
     """Run XTB job on given xtb input file, saving output to a given
@@ -55,13 +57,16 @@ def run_xtb(
         xyz_file (str): xtb input file to run geometry optimisation on.
         save_folder (str): Folder to save XTB output files to.
         molden (bool): If True will generate molden input file.
-        opt (bool): If true will perform geomtry optmizatin.
+        esp (bool): If True will generate electrostatic potential.
+        opt (bool): If true will perform geometry optmisation.
 
     """
     os.makedirs(save_folder, exist_ok=True)
     cmd = [os.path.abspath(xtb_file), os.path.abspath(xyz_file)]
     if molden:
         cmd.append('--molden')
+    if esp:
+        cmd.append('--esp')
     if opt:
         cmd.append('--opt')
     sub.Popen(
@@ -71,3 +76,25 @@ def run_xtb(
         stderr=sub.PIPE,
     ).communicate() 
 
+    # sometimes --esp fails to create the data, in which case we need to repeat the call
+    if esp:
+        datasize = os.path.getsize(save_folder+"/xtb_esp.dat")
+        
+        # if it is zero, it means it failed
+        if datasize == 0:
+            # repeat command with basic options
+            cmd = [os.path.abspath(xtb_file), os.path.abspath(xyz_file)]
+            sub.Popen(
+                cmd,
+                cwd=save_folder,
+                stdout=sub.PIPE,
+                stderr=sub.PIPE,
+            ).communicate() 
+            # repeat command with --esp
+            cmd.append('--esp')
+            sub.Popen(
+                cmd,
+                cwd=save_folder,
+                stdout=sub.PIPE,
+                stderr=sub.PIPE,
+            ).communicate() 

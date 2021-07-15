@@ -4,17 +4,17 @@ channels:
     - rdkit
     - conda-forge
 dependencies:
-    - python
+    - python=3.9
     - ipython
     - tqdm
-    - rdkit==2020.03.2.0
-    - matplotlib
-    - tensorflow-gpu=2.3.2
+    - rdkit
     - xtb
     - requests
-    - Cython
-    - numpy
-    - scipy
-    - matplotlib
-    - h5py
     - argh
+    - matplotlib
+    - scipy
+    - cython
+    - pip
+    - pip:
+      - tensorflow
+

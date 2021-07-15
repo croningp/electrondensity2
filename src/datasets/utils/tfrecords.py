@@ -31,10 +31,14 @@ def wrap_string(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def prepare_TFRecord(data, tokenizer):
+def prepare_TFRecord(data, tokenizer, esp):
     """Builds a tfrecod from data"""
     density = wrap_float_list(data['electron_density'].reshape(-1))
     record_dict = {'density': density,}
+
+    if esp:
+        esp = wrap_float_list(data['electrostatic_potential'].reshape(-1))
+        record_dict['electrostatic_potential'] = esp
     
     for key in data['properties']:
         key_data = data['properties'][key]
@@ -133,12 +137,14 @@ def serialize_to_tfrecords(paths, out_path, tokenizer_config_path):
         writer.write(serialized)
     writer.close()
 
-def worker(input_queue, serialized_queue, tokenizer_config):
+def worker(input_queue, serialized_queue, tokenizer_config, esp=True):
     """
     Worker process for parallel serialization
     Args:
         input_queue: Queue for input data
         serialized_queue: Queue to put processed data
+        tokenizer_config: Tokenizer created before
+        esp: if data contains also electrostatic potentials
     Return:
         None
 
@@ -147,18 +153,20 @@ def worker(input_queue, serialized_queue, tokenizer_config):
     tokenizer.load_from_config(tokenizer_config)
     while True:
             data = input_queue.get()
-            example = prepare_TFRecord(data, tokenizer)
+            example = prepare_TFRecord(data, tokenizer, esp)
             serialized = example.SerializeToString()
             serialized_queue.put(serialized)
             
 def parellel_serialize_to_tfrecords(paths,
                                     out_path,
                                     tokenizer_config_path,
+                                    esp=True,
                                     num_processes=12):
     """ Serializes all the data into one file with TFRecords.
         Args:
             path: string the main folder with cube files
             outpath: string path where to save the tfrecods
+            esp: if data contains also electrostatic potentials
             num_processes: int how many cpus use for serialization
         Returns:
             None
