@@ -13,6 +13,7 @@ import math
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import backend as K
+from tensorflow.keras.layers import LeakyReLU
 
 
 def identity_block(input_tensor, kernel_size, filters, stage, block):
@@ -53,7 +54,7 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     return x
 
 
-def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
+def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2, activation='r'):
     """A block that has a conv layer at shortcut.
     # Arguments
         input_tensor: input tensor
@@ -63,6 +64,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
         stage: integer, current stage label, used for generating layer names
         block: 'a','b'..., current block label, used for generating layer names
         strides: Strides for the first conv layer in the block.
+        activation: the type of activation
     # Returns
         Output tensor for the block.
     """
@@ -78,13 +80,19 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
     else:
         conv = layers.Conv1D
 
+    # decide type of activation
+    if activation == 'r':
+        act_fun = layers.Activation('relu')
+    elif activation == 'l':
+        act_fun = LeakyReLU(alpha=0.2)
+
     # first conv is smaller
     filters1 = math.ceil(filters/4)
 
     x = conv(filters1, kernel_size, strides=strides, padding='same',
              kernel_initializer='orthogonal', name=conv_name_base + '2a')(input_tensor)
     x = layers.BatchNormalization(name=bn_name_base + '2a')(x)
-    x = layers.Activation('relu')(x)
+    x = act_fun(x)
 
     x = conv(filters, kernel_size, padding='same',
              kernel_initializer='orthogonal', name=conv_name_base + '2b')(x)
@@ -96,7 +104,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=2):
     shortcut = layers.BatchNormalization(name=bn_name_base + '1')(shortcut)
 
     x = layers.add([x, shortcut])
-    x = layers.Activation('relu')(x)
+    x = act_fun(x)
     return x
 
 

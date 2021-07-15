@@ -29,13 +29,16 @@ class ED2ESP(VAEModel):
         """ Preprocesses esps by normalizing it between 0 and 1, and doing a dillation
         so that a data point uses a 3x3x3 area instead of a single cell"""
 
+        # first we will do a dillation, which needs to be done for both + and -
+        datap = tf.nn.max_pool3d(data, 10, 1, 'SAME')
+        datan = tf.nn.max_pool3d(data*-1, 10, 1, 'SAME')
+        data = datap + datan*-1
+
         # I have pre-calculated that data goes between -0.265 and 0.3213
         # with this division it will be roughly between -1 and 1
         data = data / 0.33
         # now we place it between 0 and 1
         data = (data+1) * 0.5
-        # now I do the dillation using maxpools
-        data = tf.nn.max_pool3d(data, 3, 1, 'SAME')
         return data
 
     def losses(self, data):
@@ -45,18 +48,43 @@ class ED2ESP(VAEModel):
         x = self.preprocess_data(data[0])
         y = self.preprocess_esp(data[1])
         
-        z_mean, z_log_var, z = self.encoder(x)
+        # z_mean, z_log_var, z = self.encoder(x)
+        z = self.encoder(x)
         y_nn = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
             tf.square(y - y_nn), axis=[1, 2, 3, 4]
         )
-        reconstruction_loss *= self.r_loss_factor
-        kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
-        kl_loss = tf.reduce_sum(kl_loss, axis=1)
-        kl_loss *= -0.5
-        total_loss = reconstruction_loss + kl_loss
-        return total_loss, reconstruction_loss, kl_loss
+        # reconstruction_loss *= self.r_loss_factor
+        # kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
+        # kl_loss = tf.reduce_sum(kl_loss, axis=1)
+        # kl_loss *= -0.5
+        # total_loss = reconstruction_loss + kl_loss
+        # return total_loss, reconstruction_loss, kl_loss
+        return reconstruction_loss
 
+    def train_step(self, data):
+        with tf.GradientTape() as tape:
+            reconstruction_loss = self.losses(data)
+        grads = tape.gradient(reconstruction_loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+        # update the trackers
+        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
+        return {
+            "loss": self.reconstruction_loss_tracker.result(),
+        }
+
+    def test_step(self, data):
+        reconstruction_loss = self.losses(data)
+        # update the trackers
+        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
+        return {
+            "loss": self.reconstruction_loss_tracker.result(),
+        }
+
+    def call(self, inputs):
+        """ inputs must be as fetched from the TFRecordLoader """
+        latent = self.encoder(self.preprocess_data(inputs))
+        return self.decoder(latent)
 
 class VAE_ed_esp(VariationalAutoencoder):
     """This is exactly the same as in VAEresnet, the only different is the very last
@@ -91,23 +119,26 @@ class VAE_ed_esp(VariationalAutoencoder):
             x = conv_block(x, kernel_size, filters, stage=i, block='a', strides=strides)
             x = identity_block(x, kernel_size, filters, stage=i, block='b')
 
-        shape_before_flattening = K.int_shape(x)[1:]
+        # shape_before_flattening = K.int_shape(x)[1:]
 
-        x = Flatten()(x)
-        self.mu = Dense(self.z_dim, name='mu')(x)
-        self.log_var = Dense(self.z_dim, name='log_var')(x)
+        # x = Flatten()(x)
+        # self.mu = Dense(self.z_dim, name='mu')(x)
+        # self.log_var = Dense(self.z_dim, name='log_var')(x)
 
-        self.z = Sampling(name='encoder_output')([self.mu, self.log_var])
+        # self.z = Sampling(name='encoder_output')([self.mu, self.log_var])
 
-        self.encoder = Model(
-            encoder_input, [self.mu, self.log_var, self.z], name='encoder'
-            )
+        # self.encoder = Model(
+        #     encoder_input, [self.mu, self.log_var, self.z], name='encoder'
+        #     )
+        self.encoder = Model (encoder_input, x, name='encoder')
 
         # THE DECODER
-        decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
+        # decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
+        decoder_input = Input(shape=K.int_shape(x)[1:], name='decoder_input')
+        x = decoder_input
 
-        x = Dense(np.prod(shape_before_flattening))(decoder_input)
-        x = Reshape(shape_before_flattening)(x)
+        # x = Dense(np.prod(shape_before_flattening))(decoder_input)
+        # x = Reshape(shape_before_flattening)(x)
 
         for i in range(self.n_layers_decoder):
             # just fetch the parameters in a variable so it doesn't get super long
