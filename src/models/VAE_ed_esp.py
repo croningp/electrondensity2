@@ -30,8 +30,8 @@ class ED2ESP(VAEModel):
         so that a data point uses a 3x3x3 area instead of a single cell"""
 
         # first we will do a dillation, which needs to be done for both + and -
-        datap = tf.nn.max_pool3d(data, 10, 1, 'SAME')
-        datan = tf.nn.max_pool3d(data*-1, 10, 1, 'SAME')
+        datap = tf.nn.max_pool3d(data, 5, 1, 'SAME')
+        datan = tf.nn.max_pool3d(data*-1, 5, 1, 'SAME')
         data = datap + datan*-1
 
         # I have pre-calculated that data goes between -0.265 and 0.3213
@@ -94,7 +94,7 @@ class VAE_ed_esp(VariationalAutoencoder):
         self, input_dim,
         encoder_conv_filters, encoder_conv_kernel_size, encoder_conv_strides,
         dec_conv_t_filters, dec_conv_t_kernel_size, dec_conv_t_strides,
-        z_dim, r_loss_factor, use_batch_norm=False, use_dropout=False
+        z_dim, r_loss_factor, use_batch_norm=False, use_dropout=False,
     ):
 
         super().__init__(
