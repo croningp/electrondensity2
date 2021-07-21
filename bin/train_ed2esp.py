@@ -53,10 +53,10 @@ strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
     vae = VAE_ed_esp(
         input_dim=tfr.ED_SHAPE,
-        encoder_conv_filters=[32, 32, 64, 128],
+        encoder_conv_filters=[16, 32, 64, 64],
         encoder_conv_kernel_size=[3, 3, 3, 3],
         encoder_conv_strides=[2, 2, 2, 2],
-        dec_conv_t_filters=[128, 64, 32, 32],
+        dec_conv_t_filters=[64, 64, 32, 16],
         dec_conv_t_kernel_size=[3, 3, 3, 3],
         dec_conv_t_strides=[2, 2, 2, 2],
         z_dim=400,
@@ -65,7 +65,7 @@ with strategy.scope():
         r_loss_factor=50000,
         )
     
-    LEARNING_RATE = 0.0005
+    LEARNING_RATE = 0.0001
     vae.compile(LEARNING_RATE)
 
 print(vae.encoder.summary())
