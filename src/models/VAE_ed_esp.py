@@ -9,21 +9,32 @@
 
 
 import tensorflow as tf
-from tensorflow.keras.layers import Input, Flatten, Dense, Reshape, UpSampling3D
+from tensorflow.keras.layers import Input, UpSampling3D
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 
 import numpy as np
 import pickle
 
-from src.models.VAE import VariationalAutoencoder, Sampling, VAEModel
+from src.models.VAE import VariationalAutoencoder, VAEModel
 from src.models.layers import identity_block, conv_block
+from src.utils import transform_ed
 
 
 class ED2ESP(VAEModel):
 
     def __init__(self, encoder, decoder, r_loss_factor, **kwargs):
         super().__init__(encoder, decoder, r_loss_factor, **kwargs)
+
+    def preprocess_data(self, data, usetanh=True):
+        """ Jarek put the data through a tanh and then through a log """
+        # from Jarek, data will be scaled between 0 (there are no negs) to 1
+
+        if usetanh:
+            data = tf.tanh(data)
+        # from jarek. it applies a log
+        return transform_ed(data)
+
 
     def preprocess_esp(self, data):
         """ Preprocesses esps by normalizing it between 0 and 1, and doing a dillation
@@ -81,9 +92,9 @@ class ED2ESP(VAEModel):
             "loss": self.reconstruction_loss_tracker.result(),
         }
 
-    def call(self, inputs):
+    def call(self, inputs, usetanh=True):
         """ inputs must be as fetched from the TFRecordLoader """
-        latent = self.encoder(self.preprocess_data(inputs))
+        latent = self.encoder(self.preprocess_data(inputs, usetanh))
         return self.decoder(latent)
 
 class VAE_ed_esp(VariationalAutoencoder):
