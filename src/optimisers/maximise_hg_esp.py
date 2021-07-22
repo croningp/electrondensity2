@@ -60,12 +60,13 @@ def load_host(filepathED, filepathESP, batch_size, tanh=True):
 
     with open(filepathESP, 'rb') as file:
         hostesp = pickle.load(file)
+        hostesp = np.expand_dims(hostesp, axis=(0,-1))
+        hostesp = hostesp.astype(np.float32)
         # we need to dillate host to use voxels of 5,5,5
         datap = tf.nn.max_pool3d(hostesp, 5, 1, 'SAME')
         datan = tf.nn.max_pool3d(hostesp*-1, 5, 1, 'SAME')
         hostesp = datap + datan*-1
-        hostesp = hostesp.astype(np.float32)
-
+        
     return tf.tile(hosted, [batch_size, 1, 1, 1, 1]), tf.tile(hostesp, [batch_size, 1, 1, 1, 1])
 
 
@@ -149,20 +150,20 @@ def grad(noise, vae, ed2esp, hosted, hostesp):
     guests = transform_back_ed(guests)
 
     # get the ESP from the generated guests ED. It will be between 0s and 1s
-    guests_esps = ed2esp(guests, usetanh=False)
+    guests_esps = ed2esp.model(guests, usetanh=False)
     # now transform them from 0..1 to -1 .. 1
     cubes = (guests_esps*2)-1
     # now between -0.33 and 0.33 which is the range of the orig data
     guests_esps = cubes * 0.33
 
     # host guest interaction fitness function
-    fitness_overlapping_ed = tf.reduce_sum(guests*hosted, axis = [1, 2, 3, 4, ])
+    # fitness_overlapping_ed = tf.reduce_sum(guests*hosted, axis = [1, 2, 3, 4, ])
     fitness_overlapping_esp = tf.reduce_sum(guests_esps*hostesp, axis = [1, 2, 3, 4, ])
     fitness = fitness_overlapping_esp
 
     gradients = tf.gradients(fitness, noise)
 
-    return fitness, gradients, guests, fitness_overlapping_ed, fitness_overlapping_esp
+    return fitness, gradients, guests#, fitness_overlapping_ed, fitness_overlapping_esp
 
 
 if __name__ == "__main__":
@@ -176,18 +177,27 @@ if __name__ == "__main__":
 
     noise_t = K.random_uniform(shape = (BATCH_SIZE, z_dim),
                              minval = -5.0, maxval = 5.0)
-    _, _, initial_output, _, _ = grad(noise_t, vae, ed_to_esp, host_ed, host_esp)
+    _, _, initial_output = grad(noise_t, vae, ed_to_esp, host_ed, host_esp)
 
     with open('cc6_esp_opt_initial.p', 'wb') as file:
         pickle.dump(initial_output, file)
 
-    for i in tqdm.tqdm(range(10000)):
-        f, grads, output, f1, f2 = grad(noise_t, vae, ed_to_esp, host_ed, host_esp)
-        # print(np.mean(f.numpy()))
-        print(np.mean(f1.numpy()), np.mean(f2.numpy()))
-        noise_t -= 0.01 * grads[0].numpy()
-        noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+    # we will do five cycles of optimising
+    for factor in [1, 5, 10, 20, 50]:
+        lr = 0.01 / factor
 
-        if i % 1000 == 0:
-            with open('cc6_esp_optimized.p', 'wb') as file:
-                pickle.dump(output, file)
+        # try to minimise overlapping
+        for j in tqdm.tqdm(range(int(8000/factor))):
+            # f, grads, output, f1, f2 = grad(noise_t, vae, ed_to_esp, host_ed, host_esp)
+            f, grads, output = grad(noise_t, vae, ed_to_esp, host_ed, host_esp)
+            print(np.mean(f.numpy()))
+            # print(np.mean(f1.numpy()), np.mean(f2.numpy()))
+            noise_t -= lr * grads[0].numpy()
+            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+
+            if j % 1000 == 0:
+                with open('cc6_esp_optimized.p', 'wb') as file:
+                    pickle.dump(output, file)
+
+    with open('cc6_esp_optimized.p', 'wb') as file:
+        pickle.dump(output, file)

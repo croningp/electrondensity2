@@ -115,7 +115,7 @@ if __name__ == "__main__":
                 pickle.dump(output, file)
 
     # Now we will minimize overlapping
-    # we will do five cycles of optimising for both
+    # we will do five cycles of optimising
     for factor in [1, 5, 10, 20, 50]:
         lr = 0.1 / factor
 
