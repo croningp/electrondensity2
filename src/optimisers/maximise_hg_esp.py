@@ -211,8 +211,8 @@ if __name__ == "__main__":
             # try to minimise overlapping ESP
             f, grads, output, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
             print(np.mean(f.numpy()))
-            noise_t -= lr * grads[0].numpy() * 0.01
-            noise_t = np.clip(noise_t, a_min=-4.0, a_max=4.0)
+            noise_t -= lr * grads[0].numpy() * 0.05
+            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open('cc6_esp_optimizedED.p', 'wb') as file:
@@ -224,7 +224,7 @@ if __name__ == "__main__":
             f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
             print(np.mean(f.numpy()))
             noise_t -= lr * grads[0].numpy()
-            noise_t = np.clip(noise_t, a_min=-4.0, a_max=4.0)
+            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open('cc6_ed_optimizedED.p', 'wb') as file:
