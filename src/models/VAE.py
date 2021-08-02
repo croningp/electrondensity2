@@ -257,7 +257,7 @@ class VariationalAutoencoder():
         )
 
         checkpoint_filepath = os.path.join(
-                run_folder, "weights/weights-{epoch:03d}-{loss:.3f}-{val_loss:.3f}.h5")
+                run_folder, "weights/weights-{epoch:03d}-{loss:.5f}-{val_loss:.5f}.h5")
         checkpoint1 = ModelCheckpoint(
             checkpoint_filepath, save_weights_only=True)
         checkpoint2 = ModelCheckpoint(
