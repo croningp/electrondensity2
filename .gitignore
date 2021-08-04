@@ -9,3 +9,4 @@ logs/
 *.pkl
 *.png
 data/
+*.npy
