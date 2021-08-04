@@ -306,7 +306,7 @@ class E2S_Transformer(tf.keras.Model):
         self.target_maxlen = target_maxlen
         self.num_classes = num_classes
 
-        self.enc_input = ElectronDensityEmbeddingV2(
+        self.enc_input = ElectronDensityEmbeddingV3(
             num_hid=num_hid, usetanh=use_tanh)
         self.dec_input = TokenEmbedding(
             num_vocab=num_classes, maxlen=target_maxlen, num_hid=num_hid
