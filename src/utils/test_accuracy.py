@@ -59,18 +59,18 @@ if __name__ == "__main__":
     allweights = sorted(glob.glob(args.folder+'*.h5'))
 
     # load validation data
-    DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/tfrecords/'
+    DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/jarek/'
     path2va = DATA_FOLDER + 'valid.tfrecords'
     tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['smiles'])
 
     # create model
     e2s = E2S_Transformer(
-        num_hid=128,
-        num_head=2,
-        num_feed_forward=512,
-        num_layers_enc=6,
-        num_layers_dec=6,
-        )
+            num_hid=64,
+            num_head=4,
+            num_feed_forward=512,
+            num_layers_enc=2,
+            num_layers_dec=2,
+            )
 
     batch = next(tfr_va.dataset_iter)
     e2s.build([batch[0].shape, batch[1].shape])
