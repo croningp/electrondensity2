@@ -4,7 +4,7 @@ import orbkit as ok
 from collections import namedtuple
 from scipy.spatial.distance import cdist
 
-#from orbkit import read, grid, display, core
+from orbkit import read, grid, display, core
 
 # from src.datasets.utils.orbkit import check_grid
 
