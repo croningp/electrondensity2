@@ -56,7 +56,7 @@ def load_model(modelpath):
     return vae, config[7]
 
 @tf.function
-def grad(noise, vae):
+def grad_size(noise, vae):
     """Computes the gradient of fintess function with respect to latent z
     Args:
         noise: a tensor with hidden noise z of shape [batch_size, noise_size]
@@ -79,13 +79,13 @@ if __name__ == "__main__":
     vae, z_dim = load_model('logs/vae/2021-05-25/')
 
     noise_t = K.random_uniform(shape=(BATCH_SIZE, z_dim), minval=-4.0, maxval=4.0)
-    _, _, initial_output = grad(noise_t, vae)
+    _, _, initial_output = grad_size(noise_t, vae)
 
     with open('initial.p', 'wb') as file:
         pickle.dump(initial_output, file)
 
     for i in tqdm.tqdm(range(10000)):
-        f, grads, output = grad(noise_t, vae)
+        f, grads, output = grad_size(noise_t, vae)
         print(np.mean(f.numpy()))
         noise_t += 0.001 * grads[0].numpy()
         # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)

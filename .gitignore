@@ -10,3 +10,4 @@ logs/
 *.png
 data/
 *.npy
+results/

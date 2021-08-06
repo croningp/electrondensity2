@@ -112,6 +112,7 @@ def load_ED_to_ESP(modelpath):
     with open(os.path.join(modelpath, 'params.pkl'), 'rb') as handle:
         config = pickle.load(handle)
 
+        # I am just hard-coding it. soon I will use config as above.
         vae_ed_esp = VAE_ed_esp(
             input_dim=[64,64,64,1],
             encoder_conv_filters=[16, 32, 64, 64],
@@ -181,7 +182,6 @@ def grad_esp_overlapping(noise, vae, ed2esp, hostesp):
 
     # host guest interaction fitness function
     fitness = tf.reduce_sum(guests_esps*hostesp, axis = [1, 2, 3, 4, ])
-
     gradients = tf.gradients(fitness, noise)
 
     return fitness, gradients, guests, guests_esps
@@ -191,6 +191,7 @@ if __name__ == "__main__":
 
     BATCH_SIZE = 32
     DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+
     host_ed, host_esp = load_host(
         DATA_FOLDER+'cc6.pkl', DATA_FOLDER+'cc6_esp.pkl', BATCH_SIZE)
     vae, z_dim = load_VAEmodel('logs/vae/2021-05-25/')
@@ -200,7 +201,7 @@ if __name__ == "__main__":
                              minval = -2.0, maxval = 2.0)
     _, _, initial_output = grad_ed_overlapping(noise_t, vae, host_ed)
 
-    with open('cc6_esp_opt_initial.p', 'wb') as file:
+    with open('cage_esp_opt_initial.p', 'wb') as file:
         pickle.dump(initial_output, file)
 
     # we will do five cycles of optimising
@@ -211,13 +212,13 @@ if __name__ == "__main__":
             # try to minimise overlapping ESP
             f, grads, output, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
             print(np.mean(f.numpy()))
-            noise_t -= lr * grads[0].numpy() * 0.05
+            noise_t -= lr * grads[0].numpy() * 0.5
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
-                with open('cc6_esp_optimizedED.p', 'wb') as file:
+                with open('cage_esp_optimizedESPED.p', 'wb') as file:
                     pickle.dump(output, file)
-                with open('cc6_esp_optimizedESP.p', 'wb') as file:
+                with open('cage_esp_optimizedESP.p', 'wb') as file:
                     pickle.dump(esps, file)
 
             # try to minimise overlapping ED
@@ -227,9 +228,9 @@ if __name__ == "__main__":
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
-                with open('cc6_ed_optimizedED.p', 'wb') as file:
+                with open('cage_esp_optimizedEDED.p', 'wb') as file:
                     pickle.dump(output, file)
 
-    with open('cc6_esp_optimized.p', 'wb') as file:
+    with open('cage_esp_optimized.p', 'wb') as file:
         pickle.dump(output, file)
 

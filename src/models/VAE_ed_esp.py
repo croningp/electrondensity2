@@ -38,7 +38,7 @@ class ED2ESP(VAEModel):
 
     def preprocess_esp(self, data):
         """ Preprocesses esps by normalizing it between 0 and 1, and doing a dillation
-        so that a data point uses a 3x3x3 area instead of a single cell"""
+        so that a data point uses a 5x5x5 area instead of a single cell"""
 
         # first we will do a dillation, which needs to be done for both + and -
         datap = tf.nn.max_pool3d(data, 5, 1, 'SAME')
