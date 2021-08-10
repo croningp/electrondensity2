@@ -62,7 +62,7 @@ def load_host(filepathED, filepathESP, batch_size, tanh=True):
 
 if __name__ == "__main__":
 
-    BATCH_SIZE = 50
+    BATCH_SIZE = 32
     DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
 
     host_ed, host_esp = load_host(
@@ -84,8 +84,8 @@ if __name__ == "__main__":
     for i in tqdm.tqdm(range(5000)):
         f, grads, output = grad_size(noise_t, vae)
         print("size "+str(np.mean(f.numpy())))
-        noise_t += 0.01 * grads[0].numpy()
-        noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+        noise_t += 0.003 * grads[0].numpy()
+        noise_t = np.clip(noise_t, a_min=-9.0, a_max=9.0)
 
     with open('cage_esp_opt_size.p', 'wb') as file:
         pickle.dump(output, file)
@@ -98,8 +98,8 @@ if __name__ == "__main__":
             # try to minimise overlapping ESP
             f, grads, output, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
             print(np.mean(f.numpy()))
-            noise_t -= lr * grads[0].numpy() * 0.5
-            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+            noise_t -= lr * grads[0].numpy() * 1.0
+            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open('cage_esp_optimizedESPED.p', 'wb') as file:
@@ -110,8 +110,8 @@ if __name__ == "__main__":
             # try to minimise overlapping ED
             f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
             print(np.mean(f.numpy()))
-            noise_t -= lr * grads[0].numpy()
-            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+            noise_t -= lr * grads[0].numpy() * 0.001
+            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open('cage_esp_optimizedEDED.p', 'wb') as file:
@@ -120,49 +120,3 @@ if __name__ == "__main__":
     with open('cage_esp_optimized.p', 'wb') as file:
         pickle.dump(output, file)
 
-
-if __name__ == "__main__":
-
-    BATCH_SIZE = 50
-    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
-    host = load_host(DATA_FOLDER+'cage.pkl', BATCH_SIZE)
-    vae, z_dim = load_model('logs/vae/2021-05-25/')
-
-    noise_t = K.random_uniform(shape=(BATCH_SIZE, z_dim), minval=-4.0, maxval=4.0)
-    _, _, initial_output = grad_overlapping(noise_t, vae, host)
-
-    with open('initial_g.p', 'wb') as file:
-        pickle.dump(initial_output, file)
-
-    with open('initial_hg.p', 'wb') as file:
-        pickle.dump(initial_output+host, file)
-
-    # First we try to maximise size of molecule
-    for i in tqdm.tqdm(range(5000)):
-        f, grads, output = grad_size(noise_t, vae)
-        print("size "+str(np.mean(f.numpy())))
-        noise_t += 0.01 * grads[0].numpy()
-        noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
-
-        if i % 500 == 0:
-            with open('optimized_size.p', 'wb') as file:
-                pickle.dump(output, file)
-
-    # Now we will minimize overlapping
-    # we will do five cycles of optimising
-    for factor in [1, 5, 10, 20, 50]:
-        lr = 0.1 / factor
-
-        # try to minimise overlapping
-        for j in tqdm.tqdm(range(int(8000/factor))):
-            f, grads, output = grad_overlapping(noise_t, vae, host)
-            print("overlapping "+str(np.mean(f.numpy())))
-            noise_t -= lr * grads[0].numpy()
-            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
-
-            if j % 1000 == 0:
-                with open('optimized_g.p', 'wb') as file:
-                    pickle.dump(output, file)
-
-                with open('optimized_hg.p', 'wb') as file:
-                    pickle.dump(output+host, file)
