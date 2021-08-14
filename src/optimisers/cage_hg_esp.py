@@ -84,8 +84,8 @@ if __name__ == "__main__":
     for i in tqdm.tqdm(range(5000)):
         f, grads, output = grad_size(noise_t, vae)
         print("size "+str(np.mean(f.numpy())))
-        noise_t += 0.003 * grads[0].numpy()
-        noise_t = np.clip(noise_t, a_min=-9.0, a_max=9.0)
+        noise_t += 0.01 * grads[0].numpy()
+        noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
     with open('cage_esp_opt_size.p', 'wb') as file:
         pickle.dump(output, file)
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             f, grads, output, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
             print(np.mean(f.numpy()))
             noise_t -= lr * grads[0].numpy() * 1.0
-            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open('cage_esp_optimizedESPED.p', 'wb') as file:
@@ -107,15 +107,15 @@ if __name__ == "__main__":
                 with open('cage_esp_optimizedESP.p', 'wb') as file:
                     pickle.dump(esps, file)
 
-            # try to minimise overlapping ED
-            f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
-            print(np.mean(f.numpy()))
-            noise_t -= lr * grads[0].numpy() * 0.001
-            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+            # # try to minimise overlapping ED
+            # f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
+            # print(np.mean(f.numpy()))
+            # noise_t -= lr * grads[0].numpy() * 0.001
+            # # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
-            if j % 1000 == 0:
-                with open('cage_esp_optimizedEDED.p', 'wb') as file:
-                    pickle.dump(output, file)
+            # if j % 1000 == 0:
+            #     with open('cage_esp_optimizedEDED.p', 'wb') as file:
+            #         pickle.dump(output, file)
 
     with open('cage_esp_optimized.p', 'wb') as file:
         pickle.dump(output, file)
