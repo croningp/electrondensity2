@@ -18,9 +18,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from src.utils.TFRecordLoader import TFRecordLoader
-from src.models.VAEresnet import VAEresnet
-from src.utils import transform_ed, transform_back_ed
 from src.optimisers.maximise_hg_esp import load_VAEmodel, load_ED_to_ESP
 from src.optimisers.maximise_hg_esp import grad_ed_overlapping, grad_esp_overlapping
 from src.optimisers.maximise_size import grad_size

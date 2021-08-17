@@ -94,6 +94,7 @@ class TFRecordLoader():
             electron_density: a new electron denisty flipped either along
             x, y, or z axis
         """
+
         input_shape = electron_density.get_shape().as_list()
         # flip each along each axes
         for flip_index in range(3):
@@ -112,7 +113,7 @@ class TFRecordLoader():
         electron_density = tf.transpose(electron_density, perm=permutations)
         electron_density.set_shape(input_shape)
 
-        return (electron_density, *args)
+        return (electron_density, *args[1:])
 
     def load_dataset(self, properties=[]):
         """ Loads a TFRecord and uses map to parse it, and stores it into self.dataset
