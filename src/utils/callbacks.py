@@ -75,8 +75,15 @@ class DisplayOutputs(Callback):
 
         if epoch % self.print_every_n_epochs != 0:
             return
-        # fetch the smiles, remember [0] is electron density, to calculate batch size.
-        source = self.batch[1]
+
+        # fetch the smiles, remember [0] is electron density and [1] might be ESP or smiles
+        # if [1] is ESP then smiles is in [2]
+        # if shape of pos [1] is less than 4 then it is smiles, otherwise smiles in [2]
+        if len(self.batch[1].shape) < 4:
+            source = self.batch[1]
+        else:
+            source = self.batch[2]
+
         target = source.numpy()
         bs = source.shape[0]
         preds = self.model.generate(
