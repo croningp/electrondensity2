@@ -16,5 +16,5 @@ dependencies:
     - cython
     - pip
     - pip:
-      - tensorflow
+      - tensorflow==2.6.0
 

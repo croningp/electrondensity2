@@ -13,7 +13,7 @@ from src.models.ESP2smiles import ESP2S_Transformer
 from src.datasets.utils.tokenizer import Tokenizer
 
 # RUN PARAMS #############################################################################
-# os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
 RUN_FOLDER = 'logs/esp2smiles/'
 mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
@@ -60,7 +60,7 @@ with strategy.scope():
     e2s.compile_model()
 
     batch = next(tfr_va.dataset_iter)
-    e2s.build([batch[0].shape, batch[1].shape])
+    e2s.build([batch[1].shape, batch[2].shape])
     e2s.summary()
 
 if mode == 'build':
@@ -71,6 +71,6 @@ else:
 # TRAINING ###############################################################################
 EPOCHS = 1000
 INITIAL_EPOCH = 0
-EPOCHS_PRINT = 5
+EPOCHS_PRINT = 1
 
 e2s.train(tfr, tfr_va, EPOCHS, RUN_FOLDER, tokenizer, INITIAL_EPOCH, EPOCHS_PRINT)
