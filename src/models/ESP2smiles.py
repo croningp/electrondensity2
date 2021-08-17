@@ -116,4 +116,66 @@ class ESP2S_Transformer(E2S_Transformer):
             name="transformer_encoder"
         )
 
+
+    def train_step(self, batch):
+        """Processes one batch inside model.fit()."""
+        source = batch[1]  # position 1 contains the electrostatic potential
+        target = batch[2]  # position 2 contains the tokenized smiles
+        dec_input = target[:, :-1]
+        dec_target = target[:, 1:]
+        with tf.GradientTape() as tape:
+            preds = self([source, dec_input])
+            one_hot = tf.one_hot(dec_target, depth=self.num_classes)
+            mask = tf.math.logical_not(
+                tf.math.equal(dec_target, 32))  # 32 is 'NULL'
+            loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        self.loss_metric.update_state(loss)
+        return {"loss": self.loss_metric.result()}
+
+
+    def test_step(self, batch):
+        source = batch[1]  # position 1 contains the electrostatic potential
+        target = batch[2]  # position 2 contains the tokenized smiles
+        dec_input = target[:, :-1]
+        dec_target = target[:, 1:]
+        preds = self([source, dec_input])
+        one_hot = tf.one_hot(dec_target, depth=self.num_classes)
+        mask = tf.math.logical_not(
+            tf.math.equal(dec_target, 32))  # 32 is 'NULL'
+        loss = self.compiled_loss(one_hot, preds, sample_weight=mask)
+        self.loss_metric.update_state(loss)
+        return {"loss": self.loss_metric.result()}
+
+    def generate(self, batch, target_start_token_idx=30, startid=0, greedy=True):
+        """Performs inference over one batch of inputs using greedy decoding."""
+
+        source = batch[1]  # electrostatic potentials
+        smiles = batch[2]
+        bs = tf.shape(source)[0]
+        enc = self.encoder(source)
+
+        if startid == 0:
+            dec_input = tf.ones((bs, 1), dtype=tf.int32) * \
+                target_start_token_idx
+            maxlen = self.target_maxlen - 1
+        else:
+            dec_input = tf.cast(smiles[:, :startid], dtype=tf.int32)
+            maxlen = self.target_maxlen - startid
+
+        dec_logits = []
+        for _ in range(maxlen):
+            dec_out = self.decode(enc, dec_input)
+            logits = self.classifier(dec_out)
+            if greedy:
+                logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            else:
+                logits = self.probabilistic_sampling(logits)
+            last_logit = tf.expand_dims(logits[:, -1], axis=-1)
+            dec_logits.append(last_logit)
+            dec_input = tf.concat([dec_input, last_logit], axis=-1)
+        return dec_input
+
         

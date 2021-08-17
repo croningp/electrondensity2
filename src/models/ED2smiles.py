@@ -464,7 +464,7 @@ class E2S_Transformer(tf.keras.Model):
 
         display_cb = DisplayOutputs(
             next(valid_dataset.dataset_iter), tokenizer.num2token, run_folder=run_folder,
-            generate_from=0
+            generate_from=0, print_every_n_epochs=print_every_n_epochs
         )
 
         checkpoint_filepath = os.path.join(

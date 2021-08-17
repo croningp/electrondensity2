@@ -88,14 +88,21 @@ class TFRecordLoader():
 
         Args:
             electron_density: An array of shape [cube_x, cube_y, cube_z]
-            *args: float a value of the homo-lumo_gap
+            *args: other properties being loaded into the tfrecord
+                if using ESP it must be set in args[0] if using this preprocess
 
         Return:
             electron_density: a new electron denisty flipped either along
             x, y, or z axis
+            *args: other unchanged properties
         """
 
+        # if the first element in args has shape of len 4, then it should be ESP
+        if len(args[0].shape)==4 :
+            electrostatic = args[0]
+        
         input_shape = electron_density.get_shape().as_list()
+
         # flip each along each axes
         for flip_index in range(3):
             uniform_random = tf.random.uniform([], 0, 1.0)
@@ -105,6 +112,12 @@ class TFRecordLoader():
                 mirror_cond, lambda: tf.reverse(electron_density, [flip_index]),
                 lambda: electron_density)
 
+            # meaning we have esps. we flip same as with eds
+            if len(args[0].shape)==4 :
+                electrostatic = tf.cond(
+                    mirror_cond, lambda: tf.reverse(electrostatic, [flip_index]),
+                    lambda: electrostatic)
+
         # random rotation
         permutations = tf.range(3, dtype=tf.int32)
         permutations = tf.random.shuffle(permutations)
@@ -113,7 +126,14 @@ class TFRecordLoader():
         electron_density = tf.transpose(electron_density, perm=permutations)
         electron_density.set_shape(input_shape)
 
-        return (electron_density, *args[1:])
+        # if using ESP, also do the rotations and return
+        if len(args[0].shape)==4 :
+            electrostatic = tf.transpose(electrostatic, perm=permutations)
+            electrostatic.set_shape(input_shape)
+            return (electron_density, electrostatic, *args[1:])
+
+        return (electron_density, *args)
+
 
     def load_dataset(self, properties=[]):
         """ Loads a TFRecord and uses map to parse it, and stores it into self.dataset

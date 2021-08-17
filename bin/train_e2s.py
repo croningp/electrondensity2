@@ -47,7 +47,7 @@ tokenizer = Tokenizer()
 tokenizer.load_from_config(path2to)
 
 # ARCHITECTURE ###########################################################################
-# create GPT model
+# create Transformer model
 strategy = tf.distribute.MirroredStrategy()
 
 with strategy.scope():
