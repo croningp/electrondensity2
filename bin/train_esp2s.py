@@ -54,8 +54,8 @@ with strategy.scope():
             num_hid=64,
             num_head=4,
             num_feed_forward=512,
-            num_layers_enc=2,
-            num_layers_dec=2,
+            num_layers_enc=4,
+            num_layers_dec=4,
             )
     e2s.compile_model()
 
