@@ -223,7 +223,7 @@ class VariationalAutoencoder():
 
     def compile(self, learning_rate):
         self.learning_rate = learning_rate
-        optimizer = Adam(lr=learning_rate)
+        optimizer = Adam(learning_rate=learning_rate)
         self.model.compile(optimizer=optimizer)
 
     def save(self, folder):
@@ -287,7 +287,7 @@ class VariationalAutoencoder():
         generated_cubes = []
 
         for i in range(num_batches):
-            next_batch = valid_dataset.next()[0]
+            next_batch = valid_dataset[0]#.next()[0]
             cubes = self.model(next_batch)
             cubes = transform_back_ed(cubes).numpy()
             generated_cubes.extend(cubes)
@@ -304,7 +304,7 @@ class VariationalAutoencoder():
         return original_cubes, generated_cubes
 
     def interpolation_two_molecules(
-        self, m1=None, m2=None, valid_dataset=None, steps=10, savepath=None
+        self, m1=None, m2=None, valid_dataset=None, steps=9, savepath=None
     ):
         """Given either m1 and m2 or valid_dataset, it will interpolate the latent
         vectors and it will use the vae to generate the 3D volumes of the interpolation
@@ -319,7 +319,7 @@ class VariationalAutoencoder():
             savepath: If given results will be pickled to this file.
 
         Returns:
-            [type]: [description]
+            generated_cubes: Results of interp
         """
 
         # if molecules are not given, we will pick two at random from valid_dataset
@@ -331,8 +331,8 @@ class VariationalAutoencoder():
         pd = self.model.preprocess_data  # just to get a shorter name
         _, _, l1 = self.encoder(pd(m1))
         _, _, l2 = self.encoder(pd(m2))
-        l1 = l1[:1]  # just get the first 2 so we don't need to move the whole batch
-        l2 = l2[:1]
+        l1 = l1[:10]  # just get the first 2 so we don't need to move the whole batch
+        l2 = l2[:10]
 
         # calculate interpolation steps
         step = (l2-l1)/steps
@@ -342,7 +342,7 @@ class VariationalAutoencoder():
         for i in range(steps+1):
             mol = l1 + step*i
             cubes = self.decoder(mol)
-            cubes = transform_back_ed(cubes).numpy()[0]  # just take 1
+            cubes = transform_back_ed(cubes).numpy()[6]  # just take 1
             generated_cubes.extend([cubes])
 
         if savepath is not None:
@@ -352,9 +352,68 @@ class VariationalAutoencoder():
 
         return generated_cubes
 
+
+    def interpolation_latent_space_features(
+        self, valid_dataset, features=[0], steps=10, savepath=None
+    ):
+        """Given a dataset, it will interpolate the features in "features" from 0 to 1.
+        All the other features will be frozen to randomly batch selected from the dataset.
+
+        Args:
+            valid_dataset: it must be a tfrecord, loaded with tfrecorloader
+            features (list, optional): Features from the latent space to interpolate
+                between 0 and 1.
+            steps (int, optional): [description]. Number of iterpolation steps.
+            savepath (optional): If given results will be pickled to this file.
+        """
+
+        # get a batch
+        batch = valid_dataset.next()[0]
+        # get their latent vector using the encoder
+        pd = self.model.preprocess_data  # just to get a shorter name
+        _, _, ls = self.encoder(pd(batch))
+        ls = ls[:1].numpy()  # just get the first 1 so we don't need to move the whole batch
+        print(ls.shape)
+        ls[:, features] = 0 # set to 0 as starting point interpolation features
+
+        # calculate interpolation steps. It is between 0 and 1
+        step = 1/steps
+
+        generated_cubes = []
+
+        for _ in range(steps+1):
+            cubes = self.decoder(ls)
+            cubes = transform_back_ed(cubes).numpy()  # just take 1
+            generated_cubes.extend([cubes])
+            ls[:, features] += step
+
+        if savepath is not None:
+            print('Electron densities saved to {}'.format(savepath))
+            with open(savepath, 'wb') as pfile:
+                pickle.dump(generated_cubes, pfile)
+
+        return generated_cubes
+
+
     def substract_add_molecules(
         self, m1=None, m2=None, valid_dataset=None, savepath=None
     ):
+        """Given either m1 and m2 or valid_dataset, it will subtract and add the latent
+        spaces. If m1 is not given then valid_dataset must be given, and then 
+        interpolation will be random choosing a random batch to do the calculations.
+
+        Args:
+            m1 (optional): A batch of molecules 
+            m2 (optional): A batch of molecules
+            valid_dataset (optional): it must be a tfrecord, loaded with tfrecorloader
+            savepath (optional): If given results will be pickled to this file.
+
+        Returns:
+            original_cubes1: m1 basically
+            original_cubes2: m2
+            genadds: m1+m2
+            gensubs: m1-m2
+        """
 
         # if molecules are not given, we will pick two at random from valid_dataset
         if not m1:

@@ -65,7 +65,7 @@ def load_model(modelpath, datapath):
         num_feed_forward=config[2],
         num_layers_enc=config[3],
         num_layers_dec=config[4],
-        use_tanh=False,
+        use_tanh=True,
     )
     e2s.build([batch[0].shape, batch[1].shape])
 
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
-    preds = e2s.generate([cubes, []], startid=0, greedy=False)
+    preds = e2s.generate([cubes, []], startid=0, greedy=True)
     preds = preds.numpy()
 
     smiles = []  # where to store the generated smiles
@@ -122,6 +122,6 @@ if __name__ == "__main__":
     # now smiles to molecules to image
     mols = [Chem.MolFromSmiles(m) for m in smiles]
     # mols = [mol for mol in mols if mol is not None]
-    img = Draw.MolsToGridImage(mols, molsPerRow=6, subImgSize=(200, 200),
+    img = Draw.MolsToGridImage(mols, molsPerRow=6, subImgSize=(1000, 1000),
                                legends=smiles)
     img.save('smiles'+'.png')

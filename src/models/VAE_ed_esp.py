@@ -190,7 +190,7 @@ class VAE_ed_esp(VariationalAutoencoder):
         generated_esps = []
 
         for i in range(num_batches):
-            next_batch = valid_dataset.next()
+            next_batch = valid_dataset#.next()
             # get batch of eds and transform into esps
             cubes = self.model(next_batch[0])
             # now transform them from 0..1 to -1 .. 1

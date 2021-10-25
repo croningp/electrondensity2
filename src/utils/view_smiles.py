@@ -25,6 +25,6 @@ if __name__ == "__main__":
 
     mols = [Chem.MolFromSmiles(m) for m in zipped]
     # mols = [mol for mol in mols if mol is not None]
-    img = Draw.MolsToGridImage(mols, molsPerRow=6, subImgSize=(200, 200),
+    img = Draw.MolsToGridImage(mols, molsPerRow=6, subImgSize=(1000, 1000),
                                legends=zipped)
     img.save('grid'+'.png')
