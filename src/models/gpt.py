@@ -12,6 +12,7 @@
 #
 ##########################################################################################
 
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -192,7 +193,19 @@ class GPT(keras.Model):
         self.loss_metric.update_state(loss)
         return {"loss": self.loss_metric.result()}
 
-    def generate(self, source, target_start_token_idx=30, startid=0):
+    def probabilistic_sampling(self, logits):
+        """ Performs probabilistic selection of logits, instead of argmax."""
+        logits, indices = tf.math.top_k(logits, k=10, sorted=True)
+        indices = np.asarray(indices).astype("int32")
+        preds = tf.keras.activations.softmax(tf.expand_dims(logits, 0))[0]
+        preds = np.asarray(preds).astype("float32")
+        tokens = []
+        for i in range(len(preds)):
+            token = np.random.choice(indices[i][-1], p=preds[i][-1])
+            tokens.append(token)
+        return np.array(tokens).reshape([len(tokens),-1])
+
+    def generate(self, source, target_start_token_idx=30, startid=0, greedy=True):
         """Performs inference over one batch of inputs using greedy decoding."""
         bs = tf.shape(source)[0]
 
@@ -204,7 +217,10 @@ class GPT(keras.Model):
         gpt_logits = []
         for _ in range(self.maxlen - startid - 1):
             logits = self(gpt_input)
-            logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            if greedy:
+                logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            else:
+                logits = self.probabilistic_sampling(logits)
             last_logit = tf.expand_dims(logits[:, -1], axis=-1)
             gpt_logits.append(last_logit)
             gpt_input = tf.concat([gpt_input, last_logit], axis=-1)

@@ -49,7 +49,7 @@ class DisplayOutputs(Callback):
         self, batch, idx_to_token, target_start_token_idx=30, target_end_token_idx=31,
         generate_from=10, print_screen=5, print_every_n_epochs=1, run_folder=None
     ):
-        """Callback used on the Smiles GPT. Print on screen a few smiles as generated.
+        """Callback used on the Transformer. Print on screen a few smiles as generated.
         It also generates the smiles for the whole batch and saves it in a pickle file.
 
         Args:
