@@ -163,7 +163,7 @@ class Tokenizer(object):
             raise ValueError('One or more tokens are not present in the dictionary')
         return encoded_smiles
     
-    def decode_smiles(self, encoded_smiles: List[int]) -> str:
+    def decode_smiles(self, encoded_smiles: List[str]) -> str:
         """
         Decodes a single smiles string
         Args:

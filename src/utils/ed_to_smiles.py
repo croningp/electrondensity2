@@ -21,7 +21,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def load_tokenizer(data_folder):
-    """Just loads the tokenizer
+    """Just loads the tokenizer to convert tokens such as '30' into letters such as 'C'
 
     Args:
         data_folder: Path to the data folder containing the file tokenizer.json
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
-    preds = e2s.generate([cubes, []], startid=0, greedy=True)
+    preds = e2s.generate([cubes, []], startid=0, greedy=False)
     preds = preds.numpy()
 
     smiles = []  # where to store the generated smiles

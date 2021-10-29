@@ -86,6 +86,7 @@ class TokenAndPositionEmbedding(layers.Layer):
 class GPT(keras.Model):
     def __init__(
         self,
+        tokenizer,
         embed_dim=256,
         num_heads=2,
         feed_forward_dim=512,
@@ -95,7 +96,7 @@ class GPT(keras.Model):
     ):
         super().__init__()
 
-        self.loss_metric = keras.metrics.Mean(name="loss")
+        self.tokenizer = tokenizer
 
         self.embed_dim = embed_dim
         self.num_heads = num_heads
@@ -103,6 +104,8 @@ class GPT(keras.Model):
         self.num_trans_blocks = num_trans_blocks
         self.vocab_size = vocab_size
         self.maxlen = maxlen
+
+        self.loss_metric = keras.metrics.Mean(name="loss")
 
         self.embedding_layer = TokenAndPositionEmbedding(
             maxlen=maxlen, vocab_size=vocab_size, embed_dim=embed_dim
@@ -226,13 +229,34 @@ class GPT(keras.Model):
             gpt_input = tf.concat([gpt_input, last_logit], axis=-1)
         return gpt_input
 
+    def generate_from_smiles(self, smiles, greedy=True):
+        """Given a string seed "smiles", it will generate from there until STOP.
+        For example if smiles is "CO" it might generate something like "COCC[STOP]"
+
+        Args:
+            smiles (string): a smiles string in the usual smiles format
+            greedy: If true will pick the next token based on argmax, else random sampling
+        """
+
+        # start converting the smiles into tokens using the tokenizer
+        encoded_smiles = self.tokenizer.encode_smiles(smiles)
+        encoded_smiles = np.array(encoded_smiles)
+        # use model to generate smiles from seed
+        generated_smiles = self.generate(encoded_smiles, startid=len(smiles)+1)
+        # transform for decoding
+        generated_smiles = list(generated_smiles[0].numpy())
+        generated_smiles = [str(e) for e in generated_smiles]
+
+        return self.tokenizer.decode_smiles(generated_smiles)
+
     def train(
-        self, train_dataset, valid_dataset, epochs, run_folder, tokenizer,
-        initial_epoch=0, print_every_n_epochs=1
+        self, train_dataset, valid_dataset, epochs, run_folder, initial_epoch=0, 
+        print_every_n_epochs=1
     ):
 
         display_cb = DisplayOutputs(
-            next(valid_dataset.dataset_iter), tokenizer.num2token, run_folder=run_folder,
+            next(valid_dataset.dataset_iter), self.tokenizer.num2token, 
+            run_folder=run_folder,
         )
 
         checkpoint_filepath = os.path.join(
