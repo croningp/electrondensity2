@@ -240,9 +240,9 @@ class GPT(keras.Model):
 
         # start converting the smiles into tokens using the tokenizer
         encoded_smiles = self.tokenizer.encode_smiles(smiles)
-        encoded_smiles = np.array(encoded_smiles)
+        encoded_smiles = np.array([encoded_smiles])
         # use model to generate smiles from seed
-        generated_smiles = self.generate(encoded_smiles, startid=len(smiles)+1)
+        generated_smiles = self.generate(encoded_smiles, startid=len(smiles)+1, greedy=greedy)
         # transform for decoding
         generated_smiles = list(generated_smiles[0].numpy())
         generated_smiles = [str(e) for e in generated_smiles]

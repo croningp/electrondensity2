@@ -9,9 +9,9 @@ from src.datasets.utils.tokenizer import Tokenizer
 # RUN PARAMS #############################################################################
 os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 RUN_FOLDER = 'logs/gpt/'
-mode = 'build'  # use 'build' to start train, 'load' to continue an old train
+mode = 'load'  # use 'build' to start train, 'load' to continue an old train
 
-if mode == 'load':
+if mode == 'build':
     startdate = datetime.now().strftime('%Y-%m-%d')
     RUN_FOLDER += startdate + '/'
 
