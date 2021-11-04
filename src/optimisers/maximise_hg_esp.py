@@ -216,14 +216,14 @@ if __name__ == "__main__":
                              minval = -2.0, maxval = 2.0)
     _, _, init_eds, init_esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
 
-    with open('cb6_esp_opt_initial_g.p', 'wb') as file:
-        pickle.dump(RUN_FOLDER+init_eds, file)
+    with open(RUN_FOLDER+'cb6_esp_opt_initial_g.p', 'wb') as file:
+        pickle.dump(init_eds, file)
 
-    with open('cb6_esp_opt_initial_g_esp.p', 'wb') as file:
-        pickle.dump(RUN_FOLDER+init_esps, file)
+    with open(RUN_FOLDER+'cb6_esp_opt_initial_g_esp.p', 'wb') as file:
+        pickle.dump(init_esps, file)
 
-    with open('cb6_esp_opt_initial_hg.p', 'wb') as file:
-        pickle.dump(RUN_FOLDER+init_eds+host_ed, file)
+    with open(RUN_FOLDER+'cb6_esp_opt_initial_hg.p', 'wb') as file:
+        pickle.dump(init_eds+host_ed, file)
 
     # we will do five cycles of optimising
     for factor in [1, 5, 10, 20, 50]:
@@ -238,10 +238,10 @@ if __name__ == "__main__":
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
-                with open('cage_esp_optimizedESPED'+slr+'.p', 'wb') as file:
-                    pickle.dump(RUN_FOLDER+output, file)
-                with open('cage_esp_optimizedESP'+slr+'.p', 'wb') as file:
-                    pickle.dump(RUN_FOLDER+esps, file)
+                with open(RUN_FOLDER+'cage_esp_optimizedESPED'+slr+'.p', 'wb') as file:
+                    pickle.dump(output, file)
+                with open(RUN_FOLDER+'cage_esp_optimizedESP'+slr+'.p', 'wb') as file:
+                    pickle.dump(esps, file)
 
             # try to minimise overlapping ED
             f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
@@ -250,9 +250,9 @@ if __name__ == "__main__":
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
-                with open('cage_esp_optimizedEDED'+slr+'.p', 'wb') as file:
-                    pickle.dump(RUN_FOLDER+output, file)
+                with open(RUN_FOLDER+'cage_esp_optimizedEDED'+slr+'.p', 'wb') as file:
+                    pickle.dump(output, file)
 
-    with open('cage_esp_optimized_final.p', 'wb') as file:
-        pickle.dump(RUN_FOLDER+output, file)
+    with open(RUN_FOLDER+'cage_esp_optimized_final.p', 'wb') as file:
+        pickle.dump(output, file)
 
