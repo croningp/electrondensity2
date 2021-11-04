@@ -205,7 +205,8 @@ if __name__ == "__main__":
     os.mkdir(RUN_FOLDER+'_'+str(n)+'/')
 
     BATCH_SIZE = 32
-    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+    # DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+    DATA_FOLDER = '/media/extssd/juanma/'
 
     host_ed, host_esp = load_host(
         DATA_FOLDER+'cc6.pkl', DATA_FOLDER+'cc6_esp.pkl', BATCH_SIZE)
