@@ -229,7 +229,7 @@ if __name__ == "__main__":
     # we will do five cycles of optimising
     for factor in [1, 5, 10, 20, 50]:
         lr = 0.05 / factor
-        slr = str(lr)
+        slr = str(factor)
 
         for j in tqdm.tqdm(range(int(10000/factor))):
             # try to minimise overlapping ESP
