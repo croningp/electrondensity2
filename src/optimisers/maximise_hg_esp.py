@@ -11,6 +11,7 @@
 ##########################################################################################
 
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 import tqdm
 import pickle
 import numpy as np
@@ -192,7 +193,7 @@ if __name__ == "__main__":
 
     # factor that we will use to multiply the ED part of gradient descent.
     # The ESP part will by multiplied by 1-ed_factor
-    ed_factor = 0.9
+    ed_factor = 0.1
 
     # folder where to save the logs of this run
     startdate = datetime.now().strftime('%Y-%m-%d')
