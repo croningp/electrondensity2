@@ -11,7 +11,7 @@
 ##########################################################################################
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+#os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 import tqdm
 import pickle
 import numpy as np
@@ -193,7 +193,7 @@ if __name__ == "__main__":
 
     # factor that we will use to multiply the ED part of gradient descent.
     # The ESP part will by multiplied by 1-ed_factor
-    ed_factor = 0.1
+    ed_factor = 0.9
 
     # folder where to save the logs of this run
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -207,8 +207,8 @@ if __name__ == "__main__":
     os.mkdir(RUN_FOLDER)
 
     BATCH_SIZE = 32
-    # DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
-    DATA_FOLDER = '/media/extssd/juanma/'
+    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+    # DATA_FOLDER = '/media/extssd/juanma/'
 
     host_ed, host_esp = load_host(
         DATA_FOLDER+'cc6.pkl', DATA_FOLDER+'cc6_esp.pkl', BATCH_SIZE)
@@ -237,7 +237,7 @@ if __name__ == "__main__":
             # try to minimise overlapping ESP
             f, grads, output, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
             print(np.mean(f.numpy()))
-            noise_t -= lr * grads[0].numpy() * ed_factor
+            noise_t -= lr * grads[0].numpy() * (1-ed_factor)
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
@@ -249,7 +249,7 @@ if __name__ == "__main__":
             # try to minimise overlapping ED
             f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
             print(np.mean(f.numpy()))
-            noise_t -= lr * grads[0].numpy() * (1-ed_factor)
+            noise_t -= lr * grads[0].numpy() * ed_factor
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
