@@ -203,7 +203,8 @@ if __name__ == "__main__":
     n = 0
     while os.path.exists(RUN_FOLDER+'_'+str(n)+'/'):
         n += 1
-    os.mkdir(RUN_FOLDER+'_'+str(n)+'/')
+    RUN_FOLDER += '_'+str(n)+'/'
+    os.mkdir(RUN_FOLDER)
 
     BATCH_SIZE = 32
     # DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
