@@ -193,7 +193,7 @@ if __name__ == "__main__":
 
     # factor that we will use to multiply the ED part of gradient descent.
     # The ESP part will by multiplied by 1-ed_factor
-    ed_factor = 0.9
+    ed_factor = 0.7
 
     # folder where to save the logs of this run
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -241,9 +241,9 @@ if __name__ == "__main__":
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
-                with open(RUN_FOLDER+'cage_esp_optimizedESPED'+slr+'.p', 'wb') as file:
+                with open(RUN_FOLDER+'cb6_esp_optimizedESPED'+slr+'.p', 'wb') as file:
                     pickle.dump(output, file)
-                with open(RUN_FOLDER+'cage_esp_optimizedESP'+slr+'.p', 'wb') as file:
+                with open(RUN_FOLDER+'cb6_esp_optimizedESP'+slr+'.p', 'wb') as file:
                     pickle.dump(esps, file)
 
             # try to minimise overlapping ED
@@ -253,7 +253,7 @@ if __name__ == "__main__":
             noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
-                with open(RUN_FOLDER+'cage_esp_optimizedEDED'+slr+'.p', 'wb') as file:
+                with open(RUN_FOLDER+'cb6_esp_optimizedEDED'+slr+'.p', 'wb') as file:
                     pickle.dump(output, file)
 
     with open(RUN_FOLDER+'cage_esp_optimized_final.p', 'wb') as file:
