@@ -22,7 +22,6 @@ from tensorflow.keras import backend as K
 from src.models.VAEresnet import VAEresnet
 from src.utils import transform_back_ed
 from src.models.VAE_ed_esp import VAE_ed_esp
-from src.optimisers.host_guest_overlapping import load_host
 
 
 def preprocess_esp(data):
@@ -207,7 +206,7 @@ if __name__ == "__main__":
     os.mkdir(RUN_FOLDER)
 
     BATCH_SIZE = 32
-    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+    DATA_FOLDER = '/home/nvme/juanma/Data/ED/'
     # DATA_FOLDER = '/media/extssd/juanma/'
 
     host_ed, host_esp = load_host(
@@ -256,6 +255,6 @@ if __name__ == "__main__":
                 with open(RUN_FOLDER+'cb6_esp_optimizedEDED'+slr+'.p', 'wb') as file:
                     pickle.dump(output, file)
 
-    with open(RUN_FOLDER+'cage_esp_optimized_final.p', 'wb') as file:
+    with open(RUN_FOLDER+'cb6_esp_optimized_final.p', 'wb') as file:
         pickle.dump(output, file)
 
