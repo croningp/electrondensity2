@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     # factor that we will use to multiply the ED part of gradient descent.
     # The ESP part will by multiplied by 1-ed_factor
-    ed_factor = 0.0
+    ed_factor = 0.95
 
     # folder where to save the logs of this run
     startdate = datetime.now().strftime('%Y-%m-%d')
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     RUN_FOLDER += '_'+str(n)+'/'
     os.mkdir(RUN_FOLDER)
 
-    BATCH_SIZE = 32
+    BATCH_SIZE = 38
     DATA_FOLDER = '/home/nvme/juanma/Data/ED/' # in auchentoshan
     # DATA_FOLDER = '/media/extssd/juanma/' # in dragonsoop
     # DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
@@ -100,18 +100,18 @@ if __name__ == "__main__":
         pickle.dump(init_eds+host_ed, file)
 
     # First we try to maximise size of molecule
-    for i in tqdm.tqdm(range(5000)):
+    for i in tqdm.tqdm(range(1000)):
         f, grads, output = grad_size(noise_t, vae)
         print("size "+str(np.mean(f.numpy())))
-        noise_t += 0.01 * grads[0].numpy()
-        noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+        noise_t += 0.001 * grads[0].numpy()
+        # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
     with open(RUN_FOLDER+'cage_esp_opt_size.p', 'wb') as file:
         pickle.dump(output, file)
 
     # now we will do five cycles of optimising
     for factor in [1, 5, 10, 20, 50]:
-        lr = 0.05 / factor
+        lr = 0.01 / factor
         slr = str(factor)
 
         for j in tqdm.tqdm(range(int(10000/factor))):
@@ -119,7 +119,7 @@ if __name__ == "__main__":
             f, grads, output, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
             print(np.mean(f.numpy()))
             noise_t -= lr * grads[0].numpy() * (1-ed_factor)
-            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open(RUN_FOLDER+'cage_esp_optimizedESPED'+slr+'.p', 'wb') as file:
@@ -131,7 +131,7 @@ if __name__ == "__main__":
             f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
             print(np.mean(f.numpy()))
             noise_t -= lr * grads[0].numpy() * ed_factor
-            noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
+            # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open(RUN_FOLDER+'cage_esp_optimizedEDED'+slr+'.p', 'wb') as file:
