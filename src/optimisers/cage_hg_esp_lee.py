@@ -92,7 +92,7 @@ if __name__ == "__main__":
     for i in tqdm.tqdm(range(1000)):
         f, grads, output = grad_size(noise_t, vae)
         print("size "+str(np.mean(f.numpy())))
-        noise_t += 0.01 * grads[0].numpy()
+        noise_t += 0.005 * grads[0].numpy()
         # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
     with open(RUN_FOLDER+'cage_esp_opt_size.p', 'wb') as file:
