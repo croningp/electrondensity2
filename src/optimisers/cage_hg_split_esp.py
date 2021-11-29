@@ -1,8 +1,10 @@
 ##########################################################################################
 #
-# This code is a small variation of "cage_hg_esp.py" so check that one first.
-# Basically, instead of doing two steps each iteration, one for ED and one for ESP,
-# we will make a function that combines them into a single step.
+# This code is a variation of "cage_hg_esp_lee.py" so check that one first.
+# Basically, instead of directly multiplying ESPs from guest and hos to get the 
+# interactions, we split the host into its + and its - charges, and individually multiply
+# the guest with both of them, and then merge them together using a factor. This way
+# you can give a bigger focus to positive or negative charges.
 #
 # Author: Juanma juanma@chem.gla.ac.uk
 #
@@ -49,6 +51,20 @@ def combined_ed_esp(latent_vector, vae, ed2esp, hosted, hostesp, ed_factor):
     gradients = ed_grads[0].numpy() * ed_factor + esp_grads[0].numpy() * (1-ed_factor)
 
     return fitness, gradients, eds, esps
+
+
+def split_host_esp(host_esp):
+    """Given the ESP of a molecule, that will have positive and negative parts, this
+    function will split them and return the + and the -.
+
+    Args:
+        host_esp: the electrostatic potential of a molecule
+    """
+
+    pos_esp = tf.cast(host_esp > 0, host_esp.dtype) * host_esp
+    neg_esp = tf.cast(host_esp < 0, host_esp.dtype) * host_esp
+
+    return pos_esp, neg_esp
 
 
 if __name__ == "__main__":
