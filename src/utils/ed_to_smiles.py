@@ -14,14 +14,20 @@ from src.datasets.utils.tokenizer import Tokenizer
 from src.models.ED2smiles import E2S_Transformer
 from rdkit.Chem import Draw
 from rdkit import Chem
+import pandas as pd
 import argparse
 import pickle
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+# imports to get access to sascorer
+from rdkit.Chem import RDConfig
+import sys
+sys.path.append(os.path.join(RDConfig.RDContribDir, 'SA_Score'))
+import sascorer
 
 def load_tokenizer(data_folder):
-    """Just loads the tokenizer
+    """Just loads the tokenizer to convert tokens such as '30' into letters such as 'C'
 
     Args:
         data_folder: Path to the data folder containing the file tokenizer.json
@@ -76,7 +82,7 @@ def load_model(modelpath, datapath):
 
 if __name__ == "__main__":
 
-    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+    DATA_FOLDER = '/home/nvme/juanma/Data/ED/'
 
     # parse arguments
     parser = argparse.ArgumentParser()
@@ -89,9 +95,11 @@ if __name__ == "__main__":
     # e2s, batch = load_model('logs/e2s/2021-05-14/', DATA_FOLDER)
     # e2s, batch = load_model('logs/e2s/2021-07-07/', DATA_FOLDER)
 
-
     # load tokenizer
     toks = load_tokenizer(DATA_FOLDER)
+
+    # load Dario's db of commercially available molecules
+    commercialDB = pd.read_csv(DATA_FOLDER+'merged_db_MA.csv', usecols=['smiles'])
 
     # load the electron densities
     with open(args.file, 'rb') as pfile:
@@ -119,9 +127,21 @@ if __name__ == "__main__":
 
     print(smiles)
 
-    # now smiles to molecules to image
+    # now smiles to molecules
     mols = [Chem.MolFromSmiles(m) for m in smiles]
-    # mols = [mol for mol in mols if mol is not None]
-    img = Draw.MolsToGridImage(mols, molsPerRow=6, subImgSize=(1000, 1000),
-                               legends=smiles)
+
+    # calculate synthetic scores
+    scores = [sascorer.calculateScore(m) if m is not None else 10 for m in mols]
+    # transform them to strings
+    scores = [ f"{s:.1f}" for s in scores]
+
+    # check if these molecules are commercially avaiable
+    legend = [ s+" Y" if s in commercialDB.values else s+" N" for s in smiles ]
+
+    # add the scores
+    legend = [ t[0]+" "+t[1]  for t in zip(legend, scores)]
+
+    # molecules to image
+    img = Draw.MolsToGridImage(mols, molsPerRow=8, subImgSize=(200, 200),
+                               legends=legend)
     img.save('smiles'+'.png')

@@ -12,6 +12,7 @@
 #
 ##########################################################################################
 
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -85,6 +86,7 @@ class TokenAndPositionEmbedding(layers.Layer):
 class GPT(keras.Model):
     def __init__(
         self,
+        tokenizer,
         embed_dim=256,
         num_heads=2,
         feed_forward_dim=512,
@@ -94,7 +96,7 @@ class GPT(keras.Model):
     ):
         super().__init__()
 
-        self.loss_metric = keras.metrics.Mean(name="loss")
+        self.tokenizer = tokenizer
 
         self.embed_dim = embed_dim
         self.num_heads = num_heads
@@ -102,6 +104,8 @@ class GPT(keras.Model):
         self.num_trans_blocks = num_trans_blocks
         self.vocab_size = vocab_size
         self.maxlen = maxlen
+
+        self.loss_metric = keras.metrics.Mean(name="loss")
 
         self.embedding_layer = TokenAndPositionEmbedding(
             maxlen=maxlen, vocab_size=vocab_size, embed_dim=embed_dim
@@ -192,7 +196,19 @@ class GPT(keras.Model):
         self.loss_metric.update_state(loss)
         return {"loss": self.loss_metric.result()}
 
-    def generate(self, source, target_start_token_idx=30, startid=0):
+    def probabilistic_sampling(self, logits):
+        """ Performs probabilistic selection of logits, instead of argmax."""
+        logits, indices = tf.math.top_k(logits, k=10, sorted=True)
+        indices = np.asarray(indices).astype("int32")
+        preds = tf.keras.activations.softmax(tf.expand_dims(logits, 0))[0]
+        preds = np.asarray(preds).astype("float32")
+        tokens = []
+        for i in range(len(preds)):
+            token = np.random.choice(indices[i][-1], p=preds[i][-1])
+            tokens.append(token)
+        return np.array(tokens).reshape([len(tokens),-1])
+
+    def generate(self, source, target_start_token_idx=30, startid=0, greedy=True):
         """Performs inference over one batch of inputs using greedy decoding."""
         bs = tf.shape(source)[0]
 
@@ -204,19 +220,43 @@ class GPT(keras.Model):
         gpt_logits = []
         for _ in range(self.maxlen - startid - 1):
             logits = self(gpt_input)
-            logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            if greedy:
+                logits = tf.argmax(logits, axis=-1, output_type=tf.int32)
+            else:
+                logits = self.probabilistic_sampling(logits)
             last_logit = tf.expand_dims(logits[:, -1], axis=-1)
             gpt_logits.append(last_logit)
             gpt_input = tf.concat([gpt_input, last_logit], axis=-1)
         return gpt_input
 
+    def generate_from_smiles(self, smiles, greedy=True):
+        """Given a string seed "smiles", it will generate from there until STOP.
+        For example if smiles is "CO" it might generate something like "COCC[STOP]"
+
+        Args:
+            smiles (string): a smiles string in the usual smiles format
+            greedy: If true will pick the next token based on argmax, else random sampling
+        """
+
+        # start converting the smiles into tokens using the tokenizer
+        encoded_smiles = self.tokenizer.encode_smiles(smiles)
+        encoded_smiles = np.array([encoded_smiles])
+        # use model to generate smiles from seed
+        generated_smiles = self.generate(encoded_smiles, startid=len(smiles)+1, greedy=greedy)
+        # transform for decoding
+        generated_smiles = list(generated_smiles[0].numpy())
+        generated_smiles = [str(e) for e in generated_smiles]
+
+        return self.tokenizer.decode_smiles(generated_smiles)
+
     def train(
-        self, train_dataset, valid_dataset, epochs, run_folder, tokenizer,
-        initial_epoch=0, print_every_n_epochs=1
+        self, train_dataset, valid_dataset, epochs, run_folder, initial_epoch=0, 
+        print_every_n_epochs=1
     ):
 
         display_cb = DisplayOutputs(
-            next(valid_dataset.dataset_iter), tokenizer.num2token, run_folder=run_folder,
+            next(valid_dataset.dataset_iter), self.tokenizer.num2token, 
+            run_folder=run_folder,
         )
 
         checkpoint_filepath = os.path.join(
