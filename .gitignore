@@ -11,3 +11,4 @@ logs/
 data/
 *.npy
 results/
+orbkit*
