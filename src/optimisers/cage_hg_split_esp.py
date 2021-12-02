@@ -11,7 +11,7 @@
 ##########################################################################################
 
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 import tqdm
 import pickle
 import numpy as np
@@ -76,13 +76,13 @@ def split_host_esp(host_esp):
 
 if __name__ == "__main__":
 
-    for esp_pf in range(0, 12, 2):
+    for esp_pf in range(0, 8, 2):
         # factor that we will use to multiply the positive part of the host ESP.
         # The negative part will be multiplied by 1-esp_pos_factor
         esp_pos_factor = esp_pf / 10.
         # factor that we will use to multiply the ED part of gradient descent.
         # The ESP part will by multiplied by 1-ed_factor
-        ed_factor = 0.999
+        ed_factor = 0.9
 
         # folder where to save the logs of this run
         startdate = datetime.now().strftime('%Y-%m-%d')
@@ -95,9 +95,9 @@ if __name__ == "__main__":
         RUN_FOLDER += '_'+str(n)+'/'
         os.mkdir(RUN_FOLDER)
 
-        BATCH_SIZE = 38
-        DATA_FOLDER = '/home/nvme/juanma/Data/ED/' # in auchentoshan
-        # DATA_FOLDER = '/media/extssd/juanma/' # in dragonsoop
+        BATCH_SIZE = 40
+        # DATA_FOLDER = '/home/nvme/juanma/Data/ED/' # in auchentoshan
+        DATA_FOLDER = '/media/extssd/juanma/' # in dragonsoop
         # DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
 
         # loading the host, splitting it, and loading the models
@@ -128,7 +128,7 @@ if __name__ == "__main__":
         for i in tqdm.tqdm(range(5000)):
             f, grads, output = grad_size(noise_t, vae)
             print("size "+str(np.mean(f.numpy())))
-            noise_t += 0.002 * grads[0].numpy()
+            noise_t += 0.0012 * grads[0].numpy()
             # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
         with open(RUN_FOLDER+'cage_esp_opt_size.p', 'wb') as file:
