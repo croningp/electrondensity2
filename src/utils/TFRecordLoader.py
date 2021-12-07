@@ -171,7 +171,7 @@ class TFRecordLoader():
             properties (list, optional): Check parse_fn above
         """
         dataset = self.load_dataset(properties)
-        dataset = dataset.shuffle(2048)
+        # dataset = dataset.shuffle(2048)
 
         if train:
             dataset = dataset.map(

@@ -11,7 +11,7 @@
 ##########################################################################################
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 import tqdm
 import pickle
 import numpy as np
@@ -99,8 +99,8 @@ if __name__ == "__main__":
 
         BATCH_SIZE = 40
         # DATA_FOLDER = '/home/nvme/juanma/Data/ED/' # in auchentoshan
-        # DATA_FOLDER = '/media/extssd/juanma/' # in dragonsoop
-        DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
+        DATA_FOLDER = '/media/extssd/juanma/' # in dragonsoop
+        # DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
 
         # loading the host, splitting it, and loading the models
         host_ed, host_esp = load_host(
