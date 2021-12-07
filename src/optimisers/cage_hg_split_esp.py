@@ -11,7 +11,7 @@
 ##########################################################################################
 
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 import tqdm
 import pickle
 import numpy as np
@@ -46,7 +46,8 @@ def combined_ed_esp(latent_vector, vae, ed2esp, hosted, hostesp_pos, hostesp_neg
     # calculate ESP gradient step. First positive regions, then negative, then combine
     fp, esp_grads_p, _, esps = grad_esp_overlapping(latent_vector, vae, ed2esp, hostesp_pos)
     fn, esp_grads_n, _, esps = grad_esp_overlapping(latent_vector, vae, ed2esp, hostesp_neg)
-    esp_grads = esp_grads_p[0].numpy() * esp_pos_factor + esp_grads_n[0].numpy() * (1-esp_pos_factor)
+    # esp_grads = esp_grads_p[0].numpy() * esp_pos_factor + esp_grads_n[0].numpy() * (1-esp_pos_factor)
+    esp_grads = esp_grads_p[0].numpy() * esp_pos_factor + esp_grads_n[0].numpy()
     combined_fitness = np.mean(fp.numpy()) + np.mean(fn.numpy())
     print("esp "+str(combined_fitness))
 
@@ -76,13 +77,14 @@ def split_host_esp(host_esp):
 
 if __name__ == "__main__":
 
-    for esp_pf in range(0, 12, 2):
+    # for esp_pf in range(0, 12, 2):
+    for esp_pf in [20, 50, 100, 1000]:
         # factor that we will use to multiply the positive part of the host ESP.
         # The negative part will be multiplied by 1-esp_pos_factor
         esp_pos_factor = esp_pf / 10.
         # factor that we will use to multiply the ED part of gradient descent.
         # The ESP part will by multiplied by 1-ed_factor
-        ed_factor = 0.999
+        ed_factor = 0.9
 
         # folder where to save the logs of this run
         startdate = datetime.now().strftime('%Y-%m-%d')
@@ -95,10 +97,10 @@ if __name__ == "__main__":
         RUN_FOLDER += '_'+str(n)+'/'
         os.mkdir(RUN_FOLDER)
 
-        BATCH_SIZE = 38
-        DATA_FOLDER = '/home/nvme/juanma/Data/ED/' # in auchentoshan
+        BATCH_SIZE = 40
+        # DATA_FOLDER = '/home/nvme/juanma/Data/ED/' # in auchentoshan
         # DATA_FOLDER = '/media/extssd/juanma/' # in dragonsoop
-        # DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
+        DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
 
         # loading the host, splitting it, and loading the models
         host_ed, host_esp = load_host(
@@ -128,7 +130,7 @@ if __name__ == "__main__":
         for i in tqdm.tqdm(range(5000)):
             f, grads, output = grad_size(noise_t, vae)
             print("size "+str(np.mean(f.numpy())))
-            noise_t += 0.002 * grads[0].numpy()
+            noise_t += 0.0012 * grads[0].numpy()
             # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
         with open(RUN_FOLDER+'cage_esp_opt_size.p', 'wb') as file:
