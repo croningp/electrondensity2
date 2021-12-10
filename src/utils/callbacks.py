@@ -112,6 +112,7 @@ class DisplayOutputs(Callback):
                 wpos = max(0, self.genfrom - 1)  # because we removed before the START token
                 target_text = target_text[:wpos] + ' ' + target_text[wpos:]
                 prediction = prediction[:wpos] + ' ' + prediction[wpos:]
+                print(f"\n")
                 print(f"target:     {target_text}")
                 print(f"prediction: {prediction}\n")
 

@@ -60,19 +60,36 @@ class ED_ESP_Embedding(layers.Layer):
         datan = tf.nn.max_pool3d(data*-1, 10, 1, 'SAME')
         data = datap + datan*-1
 
+        # transform it to either +1 or -1
+        # datap = tf.cast(data>0, data.dtype)
+        # datan = tf.cast(data<0, data.dtype) * -1
+
         # I have pre-calculated that data goes between -0.265 and 0.3213
         # with this division it will be roughly between -1 and 1
         data = data / 0.33
         return data
 
+    def transform_exp(self, density):
+        """Transform electron density"""
+        density = density + 1 + 1e-4
+        density = tf.math.log(density)
+        density = density / tf.math.log(1 + 1e-4)
+        return density - 1
+
     def call(self, x):
-        # First we do the pre-processing
-        x_ed = tf.tanh(x[0])
+        # get ed and esp
+        x_ed = x[0]
         x_esp = self.preprocess_esp(x[1])
         # decorate ED
-        x = x_ed * x_esp
-        # put it between 0 and 1 (now it is between -1 and 1)
-        x = (x+1) * 0.5
+        x = x_ed  * x_esp
+        # put it between -1 and 1
+        x = tf.tanh(x)
+        # trasnform exp to make differences bigger
+        x = self.transform_exp(x)
+        # put it between -1 and 1
+        x = tf.tanh(x)
+        # put it between 0 and 1
+        x = (x + 1)*0.5
         # now from 64,64,64,1 to 32,32,32,num_hid
         x = self.conv32(x)
         x = self.id32(x)
@@ -95,7 +112,7 @@ class ED_ESP_Embedding(layers.Layer):
         return tf.squeeze(x, [1, 2])
 
 
-class ESP2S_Transformer(E2S_Transformer):
+class ED_ESP2S_Transformer(E2S_Transformer):
     def __init__(
         self,
         num_hid=64,
@@ -109,16 +126,23 @@ class ESP2S_Transformer(E2S_Transformer):
         super().__init__(num_hid, num_head, num_feed_forward, target_maxlen,
                          num_layers_enc, num_layers_dec, num_classes)
 
-        self.enc_input = ED_ESP_Embedding(num_hid=num_hid)
+        self.enc_input = ED_ESP_Embedding(num_hid=self.num_hid)
 
         self.encoder = tf.keras.Sequential(
-            [self.enc_input]
-            + [
-                TransformerEncoder(num_hid, num_head, num_feed_forward)
-                for _ in range(num_layers_enc)
+            [
+                TransformerEncoder(self.num_hid, self.num_head, self.num_feed_forward)
+                for _ in range(self.num_layers_enc)
             ],
             name="transformer_encoder"
         )
+
+    def call(self, inputs):
+        source = inputs[0]
+        target = inputs[1]
+        x = self.enc_input(source)
+        x = self.encoder(x)
+        y = self.decode(x, target)
+        return self.classifier(y)
 
 
     def train_step(self, batch):
@@ -160,7 +184,8 @@ class ESP2S_Transformer(E2S_Transformer):
         source = [batch[0], batch[1]]  # position 0 has ED position 1 contains ESP
         smiles = batch[2]
         bs = tf.shape(source[0])[0]
-        enc = self.encoder(source)
+        enc = self.enc_input(source)
+        enc = self.encoder(enc)
 
         if startid == 0:
             dec_input = tf.ones((bs, 1), dtype=tf.int32) * \

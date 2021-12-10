@@ -1,6 +1,6 @@
 ##########################################################################################
 #
-# Trains the ESP to smiles transformer
+# Trains the ED decorated with ESP to smiles transformer
 #
 ##########################################################################################
 
@@ -9,12 +9,12 @@ from datetime import datetime
 import tensorflow as tf
 
 from src.utils.TFRecordLoader import TFRecordLoader
-from src.models.ESP2smiles import ESP2S_Transformer
+from src.models.ED_ESP2smiles import ED_ESP2S_Transformer
 from src.datasets.utils.tokenizer import Tokenizer
 
 # RUN PARAMS #############################################################################
 os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-RUN_FOLDER = 'logs/esp2smiles/'
+RUN_FOLDER = 'logs/ed_esp2smiles/'
 mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
 if mode == 'build':
@@ -38,7 +38,7 @@ path2tf = DATA_FOLDER + 'train.tfrecords'
 path2va = DATA_FOLDER + 'valid.tfrecords'
 # load train and validation sets
 tfr = TFRecordLoader(path2tf, batch_size=64, train=True, properties=['electrostatic_potential', 'smiles'])
-tfr_va = TFRecordLoader(path2va, batch_size=32, properties=['electrostatic_potential', 'smiles'])
+tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['electrostatic_potential', 'smiles'])
 
 # path to smiles tokenizer
 path2to = DATA_FOLDER + 'tokenizer.json'
@@ -51,18 +51,20 @@ tokenizer.load_from_config(path2to)
 strategy = tf.distribute.MirroredStrategy()
 
 with strategy.scope():
-    e2s = ESP2S_Transformer(
+    e2s = ED_ESP2S_Transformer(
             num_hid=64,
             num_head=4,
             num_feed_forward=512,
-            num_layers_enc=4,
-            num_layers_dec=4,
+            num_layers_enc=3,
+            num_layers_dec=3,
             )
     e2s.compile_model()
 
     batch = next(tfr_va.dataset_iter)
-    e2s.build([batch[1].shape, batch[2].shape])
+    e2s([ [batch[0], batch[1]], batch[2]])
     e2s.summary()
+    # reload validation set after we used 1 batch to build the model
+    tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['electrostatic_potential', 'smiles'])
 
 if mode == 'build':
     e2s.save_build(RUN_FOLDER)
