@@ -89,7 +89,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folder", help="folder to open", type=str)
     args = parser.parse_args()
-    print('Opening {}'.format(args.file))
+    print('Opening {}'.format(args.folder))
 
     # load the model
     e2s, batch = load_model('logs/ed_esp2smiles/2021-12-09/', DATA_FOLDER)
@@ -101,12 +101,12 @@ if __name__ == "__main__":
     commercialDB = pd.read_csv(DATA_FOLDER+'merged_db_MA.csv', usecols=['smiles'])
 
     # load the eds. I screwed when naming the files, ESP is actually ED.
-    with open(args.file, 'rb') as pfile:
-        ed_cubes = pickle.load(pfile+"/cage_esp_optimizedESP50.p")
+    with open(args.folder+"/cage_esp_optimizedESP50.p", 'rb') as pfile:
+        ed_cubes = pickle.load(pfile)
 
     # load the esps
-    with open(args.file, 'rb') as pfile:
-        esp_cubes = pickle.load(pfile+"/cage_esp_optimizedED50.p")
+    with open(args.folder+"/cage_esp_optimizedED50.p", 'rb') as pfile:
+        esp_cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
     preds = e2s.generate([ed_cubes, esp_cubes, []], startid=0, greedy=True)
