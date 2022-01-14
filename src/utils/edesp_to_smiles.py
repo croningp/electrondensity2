@@ -89,7 +89,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folder", help="folder to open", type=str)
     args = parser.parse_args()
-    print('Opening {}'.format(args.file))
+    print('Opening {}'.format(args.folder))
 
     # load the model
     e2s, batch = load_model('logs/ed_esp2smiles/2021-12-09/', DATA_FOLDER)
