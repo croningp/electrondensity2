@@ -19,7 +19,7 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 
 from src.utils.optimiser_utils import load_host, load_vae_model, initial_population
-from src.utils.optimiser_utils import grad_overlapping
+from src.utils.optimiser_utils import grad_ed_overlapping
 
 
 if __name__ == "__main__":
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     # noise_t = initial_population(BATCH_SIZE, random=True)
     noise_t = initial_population(BATCH_SIZE, False, datapath=DATA_FOLDER, vae=vae)
-    _, _, initial_output = grad_overlapping(noise_t, vae, host)
+    _, _, initial_output = grad_ed_overlapping(noise_t, vae, host)
 
     with open('initial_g.p', 'wb') as file:
         pickle.dump(initial_output, file)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         pickle.dump(initial_output+host, file)
 
     for i in tqdm.tqdm(range(10000)):
-        f, grads, output = grad_overlapping(noise_t, vae)
+        f, grads, output = grad_ed_overlapping(noise_t, vae, host)
         print(np.mean(f.numpy()))
         noise_t -= 0.05 * grads[0].numpy()
         noise_t = np.clip(noise_t, a_min=-4.0, a_max=4.0)

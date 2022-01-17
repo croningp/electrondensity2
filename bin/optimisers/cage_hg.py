@@ -16,21 +16,19 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from src.utils.TFRecordLoader import TFRecordLoader
-from src.models.VAEresnet import VAEresnet
-from src.utils import transform_ed, transform_back_ed
-from src.utils.optimiser_utils import load_vae_model
+from src.utils.optimiser_utils import load_vae_model, load_cage_host_ed, grad_ed_overlapping
+from src.utils.optimiser_utils import grad_size, grad_ed_overlapping
 
 
 if __name__ == "__main__":
 
     BATCH_SIZE = 50
-    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
-    host = load_host(DATA_FOLDER+'cage.pkl', BATCH_SIZE)
+    DATA_FOLDER = '/home/nvme/juanma/Data/ED/'  # in Auchentoshan
+    host = load_cage_host_ed(DATA_FOLDER+'cage.pkl', BATCH_SIZE)
     vae, z_dim = load_vae_model('logs/vae/2021-05-25/')
 
     noise_t = K.random_uniform(shape=(BATCH_SIZE, z_dim), minval=-4.0, maxval=4.0)
-    _, _, initial_output = grad_overlapping(noise_t, vae, host)
+    _, _, initial_output = grad_ed_overlapping(noise_t, vae, host)
 
     with open('initial_g.p', 'wb') as file:
         pickle.dump(initial_output, file)
@@ -56,7 +54,7 @@ if __name__ == "__main__":
 
         # try to minimise overlapping
         for j in tqdm.tqdm(range(int(8000/factor))):
-            f, grads, output = grad_overlapping(noise_t, vae, host)
+            f, grads, output = grad_ed_overlapping(noise_t, vae, host)
             print("overlapping "+str(np.mean(f.numpy())))
             noise_t -= lr * grads[0].numpy()
             # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)

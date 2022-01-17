@@ -101,11 +101,11 @@ if __name__ == "__main__":
     commercialDB = pd.read_csv(DATA_FOLDER+'merged_db_MA.csv', usecols=['smiles'])
 
     # load the eds. I screwed when naming the files, ESP is actually ED.
-    with open(args.folder+"/cage_esp_optimizedESP50.p", 'rb') as pfile:
+    with open(args.folder+"/cage_esp_optimized_final_ED.p", 'rb') as pfile:
         ed_cubes = pickle.load(pfile)
 
     # load the esps
-    with open(args.folder+"/cage_esp_optimizedED50.p", 'rb') as pfile:
+    with open(args.folder+"/cage_esp_optimized_final_ESP.p", 'rb') as pfile:
         esp_cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities

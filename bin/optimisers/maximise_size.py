@@ -16,50 +16,13 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from src.models.VAEresnet import VAEresnet
-from src.utils import transform_back_ed
-
-
-def load_model(modelpath):
-    """Create model from config file, and load the weights
-
-    Args:
-        modelpath: path to the log of the model. should be something like:
-                   "logs/vae/2021-05-11"
-
-    Returns:
-        model: returns the model with loaded weights
-        z_dim: size of the latent space.
-    """
-
-    # load the model configuration from the params.pkl file
-    with open(os.path.join(modelpath, 'params.pkl'), 'rb') as handle:
-        config = pickle.load(handle)
-
-    # create the model
-    vae = VAEresnet(
-        input_dim=config[0],
-        encoder_conv_filters=config[1],
-        encoder_conv_kernel_size=config[2],
-        encoder_conv_strides=config[3],
-        dec_conv_t_filters=config[4],
-        dec_conv_t_kernel_size=config[5],
-        dec_conv_t_strides=config[6],
-        z_dim=config[7],
-        use_batch_norm=config[8],
-        use_dropout=config[9],
-        r_loss_factor=50000
-    )
-
-    # load the weights and return the model and the z_dim
-    vae.load_weights(os.path.join(modelpath, 'weights/weights.h5'))
-    return vae, config[7]
+from src.utils.optimiser_utils import load_vae_model, grad_size
 
 
 if __name__ == "__main__":
 
     BATCH_SIZE = 50
-    vae, z_dim = load_model('logs/vae/2021-05-25/')
+    vae, z_dim = load_vae_model('logs/vae/2021-05-25/')
 
     noise_t = K.random_uniform(shape=(BATCH_SIZE, z_dim), minval=-4.0, maxval=4.0)
     _, _, initial_output = grad_size(noise_t, vae)

@@ -19,11 +19,10 @@ from datetime import datetime
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from src.optimisers.maximise_hg_esp import load_VAEmodel, load_ED_to_ESP
-from src.optimisers.maximise_hg_esp import grad_ed_overlapping, grad_esp_overlapping
-from src.optimisers.maximise_size import grad_size
+from src.utils.optimiser_utils import load_VAEmodel, load_ED_to_ESP
+from src.utils.optimiser_utils import grad_ed_overlapping, grad_esp_overlapping
+from src.utils.optimiser_utils import grad_size, load_cage_host_ed_esp
 
-from src.optimisers.cage_hg_esp import load_host
 
 def combined_ed_esp(latent_vector, vae, ed2esp, hosted, hostesp_pos, hostesp_neg,
     ed_factor, esp_pos_factor):
@@ -103,7 +102,7 @@ if __name__ == "__main__":
         DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
 
         # loading the host, splitting it, and loading the models
-        host_ed, host_esp = load_host(
+        host_ed, host_esp = load_cage_host_ed_esp(
             DATA_FOLDER+'cage.pkl', DATA_FOLDER+'cage_esp.pkl', BATCH_SIZE)
         host_esp_pos, host_esp_neg = split_host_esp(host_esp)
         vae, z_dim = load_VAEmodel('logs/vae/2021-05-25/')

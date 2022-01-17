@@ -10,8 +10,10 @@ import os
 import tensorflow as tf
 import pickle
 import numpy as np
+from tensorflow.keras import backend as K
 
 from src.models.VAEresnet import VAEresnet
+from src.models.VAE_ed_esp import VAE_ed_esp
 from src.utils import transform_ed, transform_back_ed
 from src.utils.TFRecordLoader import TFRecordLoader
 
@@ -65,6 +67,36 @@ def load_host(filepath, batch_size, tanh=True):
         host = host.astype(np.float32)
 
     return tf.tile(host, [batch_size, 1, 1, 1, 1])
+
+
+def load_host_ed_esp(filepathED, filepathESP, batch_size, tanh=True):
+    """Loads host saved as pickle file. The host pickles were prepared by Jarek.
+
+    Args:
+        filepathED: Path to the pickle file that contains the host molecule ED
+        filepathESP: Path to the pickle file that contains the host molecule ESP
+        batch_size: As the name says, batch size.
+        tanh: If doing a tanh after loading the molecule.
+
+    Returns:
+        Returns the host repeated batch_size times
+    """
+    with open(filepathED, 'rb') as file:
+        hosted = pickle.load(file)
+        if tanh:
+            hosted = np.tanh(hosted)  # tan h needed?
+        hosted = hosted.astype(np.float32)
+
+    with open(filepathESP, 'rb') as file:
+        hostesp = pickle.load(file)
+        hostesp = np.expand_dims(hostesp, axis=(0,-1))
+        hostesp = hostesp.astype(np.float32)
+        # we need to dillate host to use voxels of 5,5,5
+        datap = tf.nn.max_pool3d(hostesp, 5, 1, 'SAME')
+        datan = tf.nn.max_pool3d(hostesp*-1, 5, 1, 'SAME')
+        hostesp = datap + datan*-1
+        
+    return tf.tile(hosted, [batch_size, 1, 1, 1, 1]), tf.tile(hostesp, [batch_size, 1, 1, 1, 1])
 
 
 def load_cage_host_ed(filepath, batch_size, tanh=True):
@@ -179,7 +211,7 @@ def grad_size(noise, vae):
 
 
 @tf.function
-def grad_overlapping(noise, vae, host):
+def grad_ed_overlapping(noise, vae, host):
     """Computes the gradient of fintess function with respect to latent z
     Args:
         noise: a tensor with hidden noise z of shape [batch_size, noise_size]
@@ -200,3 +232,78 @@ def grad_overlapping(noise, vae, host):
     # calculate gradients of the fitness against the noise and return results
     gradients = tf.gradients(fitness, noise)
     return fitness, gradients, guest
+
+
+@ tf.function
+def grad_esp_overlapping(noise, vae, ed2esp, hostesp):
+    """Computes the gradient of fintess function with respect to latent z
+    Args:
+        noise: a tensor with hidden noise z of shape [batch_size, noise_size]
+        vae: a trained variational autoencoder
+        ed2esp: A trained CNN 3D ED to ESP
+        hostesp: the loaded host molecule ESP to test for overlapping
+    Returns:
+        fitness: tensor with current fitness
+        gradients: a tensor with shape[batch_size, noise_size]
+        output: a tensor with generated electron densities with shape
+                [batch_size, 64, 64, 64, 1]
+    """
+    # get the electron density from the noise
+    guests = vae.decoder(noise)
+    guests = transform_back_ed(guests)
+
+    # get the ESP from the generated guests ED. It will be between 0s and 1s
+    guests_esps = ed2esp.model(guests, usetanh=False)
+    # now transform them from 0..1 to -1 .. 1
+    cubes = (guests_esps*2)-1
+    # now between -0.33 and 0.33 which is the range of the orig data
+    guests_esps = cubes * 0.33
+
+    # host guest interaction fitness function
+    fitness = tf.reduce_sum(guests_esps*hostesp, axis = [1, 2, 3, 4, ])
+    gradients = tf.gradients(fitness, noise)
+
+    return fitness, gradients, guests, guests_esps
+
+
+def preprocess_esp(data):
+    """ Preprocesses esps by normalizing it between 0 and 1, and doing a dillation
+    so that a data point uses a 5x5x5 area instead of a single cell"""
+
+    # first we will do a dillation, which needs to be done for both + and -
+    datap = tf.nn.max_pool3d(data, 5, 1, 'SAME')
+    datan = tf.nn.max_pool3d(data*-1, 5, 1, 'SAME')
+    data = datap + datan*-1
+
+    # I have pre-calculated that data goes between -0.265 and 0.3213
+    # with this division it will be roughly between -1 and 1
+    data = data / 0.33
+    # now we place it between 0 and 1
+    data = (data+1) * 0.5
+    return data
+
+
+def load_ED_to_ESP(modelpath):
+    """Model to translate EDs to ESPs"""
+
+    with open(os.path.join(modelpath, 'params.pkl'), 'rb') as handle:
+        config = pickle.load(handle)
+
+        # I am just hard-coding it. soon I will use config as above.
+        vae_ed_esp = VAE_ed_esp(
+            input_dim=[64,64,64,1],
+            encoder_conv_filters=[16, 32, 64, 64],
+            encoder_conv_kernel_size=[3, 3, 3, 3],
+            encoder_conv_strides=[2, 2, 2, 2],
+            dec_conv_t_filters=[64, 64, 32, 16],
+            dec_conv_t_kernel_size=[3, 3, 3, 3],
+            dec_conv_t_strides=[2, 2, 2, 2],
+            z_dim=400,
+            use_batch_norm=True,
+            use_dropout=True,
+            r_loss_factor=50000,
+            )
+
+    vae_ed_esp.load_weights(os.path.join(modelpath, 'weights/weights.h5'))
+
+    return vae_ed_esp
