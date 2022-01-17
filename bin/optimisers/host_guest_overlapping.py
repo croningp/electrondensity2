@@ -25,7 +25,7 @@ from src.utils.optimiser_utils import grad_overlapping
 if __name__ == "__main__":
 
     BATCH_SIZE = 32
-    DATA_FOLDER = '/home/nvme/juanma/Data/Jarek/'
+    DATA_FOLDER = '/home/nvme/juanma/Data/ED/'  # in Auchentoshan
     host = load_host(DATA_FOLDER+'cc6.pkl', BATCH_SIZE)
     vae, z_dim = load_vae_model('logs/vae/2021-05-25/')
 
