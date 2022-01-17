@@ -9,7 +9,7 @@
 ##########################################################################################
 
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 import tqdm
 import pickle
 import numpy as np
@@ -17,7 +17,7 @@ from datetime import datetime
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from src.utils.optimiser_utils import load_VAEmodel, load_ED_to_ESP
+from src.utils.optimiser_utils import load_vae_model, load_ED_to_ESP
 from src.utils.optimiser_utils import grad_ed_overlapping, grad_esp_overlapping
 from src.utils.optimiser_utils import grad_size, load_cage_host_ed_esp
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
         host_ed, host_esp = load_cage_host_ed_esp(
             DATA_FOLDER+'cage.pkl', DATA_FOLDER+'cage_esp.pkl', BATCH_SIZE)
-        vae, z_dim = load_VAEmodel('logs/vae/2021-05-25/')
+        vae, z_dim = load_vae_model('logs/vae/2021-05-25/')
         ed_to_esp = load_ED_to_ESP('logs/vae_ed_esp/2021-07-18')
 
         noise_t = K.random_uniform(shape = (BATCH_SIZE, z_dim),
