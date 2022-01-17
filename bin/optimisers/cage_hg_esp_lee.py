@@ -115,7 +115,7 @@ if __name__ == "__main__":
                 if j % 20 == 0:
                     with open(RUN_FOLDER+'cage_esp_optimizedED'+slr+'.p', 'wb') as file:
                         pickle.dump(eds, file)
-                    with open(RUN_FOLDER+'cage_esp_optimizedED'+slr+'.p', 'wb') as file:
+                    with open(RUN_FOLDER+'cage_esp_optimizedESP'+slr+'.p', 'wb') as file:
                         pickle.dump(esps, file)
 
         # also save final results
