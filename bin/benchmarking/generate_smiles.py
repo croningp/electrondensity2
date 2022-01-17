@@ -11,22 +11,24 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 import pickle
-import numpy as np
 from datetime import datetime
-import tensorflow as tf
+import pickle
+import argparse
+
 from tensorflow.keras import backend as K
 
+from src.utils import transform_back_ed
 from src.utils.optimiser_utils import load_vae_model, load_ED_to_ESP
-from src.utils.optimiser_utils import grad_size, load_cage_host_ed_esp
+from src.utils.edesp_to_smiles import load_tokenizer, load_transformer_model
 
 
 def latent_vector_to_ed_esp(latent_vector, vae, ed2esp):
     """ given a latent vector, it will generate its electron densities and electro
-    static potentials """.
+    static potentials """
 
     # using VAE convert the latent_vector into 3D electron densities
-    eds = vae.decoder(noise)
-    eds = transform_back_ed(output)
+    eds = vae.decoder(latent_vector)
+    eds = transform_back_ed(eds)
 
     # get the ESP from the generated guests ED. It will be between 0s and 1s
     esps = ed2esp.model(eds, usetanh=False)
@@ -71,86 +73,45 @@ def latent_vector_to_smiles(latent_vector, vae, ed2esp, e2s):
     return ed_esp_to_smiles(eds, esps, e2s)
 
 
-def load_tokenizer(data_folder):
-    """Just loads the tokenizer to convert tokens such as '30' into letters such as 'C'
-
-    Args:
-        data_folder: Path to the data folder containing the file tokenizer.json
-
-    Returns:
-        tokenizer object
-    """
-    # path to smiles tokenizer
-    path2to = data_folder + 'tokenizer.json'
-    # load tokenizer
-    tokenizer = Tokenizer()
-    tokenizer.load_from_config(path2to)
-    return tokenizer
-
-
-def load_transformer(modelpath, datapath):
-    """Create model from config file, and load the weights
-
-    Args:
-        modelpath: path to the log of the model. should be something like:
-                   "logs/vae/2021-05-11"
-        datapath: path to the TFRecord. We only need 1 batch to properly build model.
-
-    Returns:
-        model: returns the model with loaded weights
-    """
-
-    # load validation data. We just need a batch to properly build the model
-    path2va = datapath + 'valid.tfrecords'
-    tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['electrostatic_potential', 'smiles'])
-    batch = next(tfr_va.dataset_iter)
-
-    # load the model configuration from the params.pkl file
-    with open(os.path.join(modelpath, 'params.pkl'), 'rb') as handle:
-        config = pickle.load(handle)
-
-    # create the model
-    e2s = ED_ESP2S_Transformer(
-        num_hid=config[0],
-        num_head=config[1],
-        num_feed_forward=config[2],
-        num_layers_enc=config[3],
-        num_layers_dec=config[4],
-    )
-    batch = next(tfr_va.dataset_iter)
-    e2s([ [batch[0], batch[1]], batch[2]])
-
-    # load the weights and return it
-    e2s.load_weights(os.path.join(modelpath, 'weights/weights.h5'))
-    return e2s, batch
-
-
 if __name__ == "__main__":
 
-    # folder where to save the logs of this run
+    # first read and parse from the command line
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--std_dev", help="latent vector std dev", type=float)
+    parser.add_argument("--Nsmiles", help="smiles to generate", type=int)
+    args = parser.parse_args()
+    std_dev = args.std_dev
+    number_to_generate = args.Nsmiles
+
+    # name of the pickle file where to save the smiles
     startdate = datetime.now().strftime('%Y-%m-%d')
-    RUN_FOLDER = startdate +'_'+ str(ed_factor)
+    pickle_file = str(std_dev) +'_'+ str(number_to_generate) + '_' + startdate +'.p'
 
-    # just do a while loop to make sure the folder doesnt exist
-    n = 0
-    while os.path.exists(RUN_FOLDER+'_'+str(n)+'/'):
-        n += 1
-    RUN_FOLDER += '_'+str(n)+'/'
-    os.mkdir(RUN_FOLDER)
-
-    BATCH_SIZE = 48
+    # DATA_FOLDER = '/home/nvme/juanma/Data/ED/'  # in auchentoshan
+    DATA_FOLDER = '/media/extssd/juanma/'
 
     # load models
     vae, z_dim = load_vae_model('logs/vae/2021-05-25/')
     ed_to_esp = load_ED_to_ESP('logs/vae_ed_esp/2021-07-18')
-    e2s, _ = load_model('logs/ed_esp2smiles/2021-12-09/', DATA_FOLDER)
+    e2s, _ = load_transformer_model('logs/ed_esp2smiles/2021-12-09/', DATA_FOLDER)
     # load tokenizer
     toks = load_tokenizer(DATA_FOLDER)
 
     # generate random latent vector
-    latent_vector = K.random_uniform(shape = (BATCH_SIZE, z_dim), minval = -3.0, maxval = 3.0)
+    BATCH_SIZE = 48
+    latent_vector = K.random_uniform(shape = (BATCH_SIZE, z_dim), minval = -std_dev, maxval = std_dev)
 
-    print( latent_vector_to_smiles(latent_vector, vae, ed_to_esp, e2s) )
+    # now just itereate and generate the smiles
+    counter = 0
+    final_smiles = []
+    while counter < number_to_generate:
+        print(str(counter) + "/" + str(number_to_generate))
+        final_smiles += latent_vector_to_smiles(latent_vector, vae, ed_to_esp, e2s)
+        counter += BATCH_SIZE
+    
+    # save in pickle file
+    with open(pickle_file, 'wb') as handle:
+        pickle.dump(final_smiles, handle)
 
 
 

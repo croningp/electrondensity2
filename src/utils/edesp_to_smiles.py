@@ -44,7 +44,7 @@ def load_tokenizer(data_folder):
     return tokenizer
 
 
-def load_model(modelpath, datapath):
+def load_transformer_model(modelpath, datapath):
     """Create model from config file, and load the weights
 
     Args:
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     print('Opening {}'.format(args.folder))
 
     # load the model
-    e2s, batch = load_model('logs/ed_esp2smiles/2021-12-09/', DATA_FOLDER)
+    e2s, batch = load_transformer_model('logs/ed_esp2smiles/2021-12-09/', DATA_FOLDER)
 
     # load tokenizer
     toks = load_tokenizer(DATA_FOLDER)
