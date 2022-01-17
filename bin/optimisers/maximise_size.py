@@ -55,23 +55,6 @@ def load_model(modelpath):
     vae.load_weights(os.path.join(modelpath, 'weights/weights.h5'))
     return vae, config[7]
 
-@tf.function
-def grad_size(noise, vae):
-    """Computes the gradient of fintess function with respect to latent z
-    Args:
-        noise: a tensor with hidden noise z of shape [batch_size, noise_size]
-    Returns:
-        fitness: tensor with current fitness
-        gradients: a tensor with shape[batch_size, noise_size]
-        output: a tensor with generated electron densities with shape
-                [batch_size, 64, 64, 64, 1]
-    """
-    output = vae.decoder(noise)
-    output = transform_back_ed(output)
-    fitness = tf.reduce_sum(output, axis=[1,2,3,4,])
-    gradients = tf.gradients(fitness, noise)
-    return fitness, gradients, output
-
 
 if __name__ == "__main__":
 
