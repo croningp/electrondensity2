@@ -4,6 +4,11 @@
 # the VAE to generate the 3D molecules, and then it uses the transformer to get the smiles
 # and it saves the results in a pickle file
 #
+# To run it, execute for example
+# python bin/benchmarking/generate_smiles.py --std_dev 5.0 --Nsmiles 1000
+# where that 5.0 after std_dev is the standard dev of the random latent vector and
+# that 1000 after Nsmiles is the number of smiles to generate
+#
 # Author: Juanma juanma@chem.gla.ac.uk
 #
 ##########################################################################################
