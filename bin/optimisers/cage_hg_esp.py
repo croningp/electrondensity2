@@ -25,39 +25,6 @@ from src.optimisers.maximise_hg_esp import grad_ed_overlapping, grad_esp_overlap
 from src.optimisers.maximise_size import grad_size
 
 
-def load_host(filepathED, filepathESP, batch_size, tanh=True):
-    """Loads host saved as pickle file. The host pickles were prepared by Jarek.
-
-    Args:
-        filepathED: Path to the pickle file that contains the host molecule ED
-        filepathESP: Path to the pickle file that contains the host molecule ESP
-        batch_size: As the name says, batch size.
-        tanh: If doing a tanh after loading the molecule.
-
-    Returns:
-        Returns the host repeated batch_size times
-    """
-    with open(filepathED, 'rb') as file:
-        hosted = pickle.load(file)
-        if tanh:
-            hosted = np.tanh(hosted)  # tan h needed?
-        hosted = hosted.astype(np.float32)
-
-    with open(filepathESP, 'rb') as file:
-        hostesp = pickle.load(file)
-        hostesp = np.expand_dims(hostesp, axis=(0,-1))
-        hostesp = hostesp.astype(np.float32)
-        # we need to dillate host to use voxels of 5,5,5
-        datap = tf.nn.max_pool3d(hostesp, 5, 1, 'SAME')
-        datan = tf.nn.max_pool3d(hostesp*-1, 5, 1, 'SAME')
-        hostesp = datap + datan*-1
-
-    # cage is 80,80,80, cut out to get it as 64,64,64
-    hosted = hosted[:, 8:-8, 8:-8, 8:-8, :]
-    hostesp = hostesp[:, 8:-8, 8:-8, 8:-8, :]
-        
-    return tf.tile(hosted, [batch_size, 1, 1, 1, 1]), tf.tile(hostesp, [batch_size, 1, 1, 1, 1])
-
 
 if __name__ == "__main__":
 

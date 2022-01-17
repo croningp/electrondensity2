@@ -19,7 +19,7 @@ from tensorflow.keras import backend as K
 from src.models.VAEresnet import VAEresnet
 from src.utils import transform_back_ed
 from src.models.CNN3D_featureprediction import CNN3D_singleprediction
-from src.optimisers.host_guest_overlapping import load_host
+from src.utils.optimiser_utils import load_host
 
 
 def load_VAEmodel(modelpath):
