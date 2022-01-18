@@ -127,19 +127,32 @@ if __name__ == "__main__":
 
     print(smiles)
 
+    # check if these molecules are commercially avaiable
+    # i want to print the commercial the last, for easier visualisation
+    commercial_smiles = [ s for s in smiles if s in commercialDB.values]
+    noncommercial_smiles = [ s for s in smiles if s not in commercialDB.values ]
+
     # now smiles to molecules
-    mols = [Chem.MolFromSmiles(m) for m in smiles]
+    comm_mols = [Chem.MolFromSmiles(m) for m in commercial_smiles]
+    noncomm_mols = [Chem.MolFromSmiles(m) for m in noncommercial_smiles]
+    mols = noncomm_mols + comm_mols
 
     # calculate synthetic scores
-    scores = [sascorer.calculateScore(m) if m is not None else 10 for m in mols]
+    comm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in comm_mols]
+    noncomm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in noncomm_mols]
     # transform them to strings
-    scores = [ f"{s:.1f}" for s in scores]
+    comm_scores = [ f"{s:.1f}" for s in comm_scores]
+    noncomm_scores = [ f"{s:.1f}" for s in noncomm_scores]
 
-    # check if these molecules are commercially avaiable
-    legend = [ s+" Y" if s in commercialDB.values else s+" N" for s in smiles ]
+    # create legend with commercial availability
+    comm_legend = [ s+" Y" for s in commercial_smiles ]
+    noncomm_legend = [ s+" N" for s in noncommercial_smiles ]
 
     # add the scores
-    legend = [ t[0]+" "+t[1]  for t in zip(legend, scores)]
+    comm_legend = [ t[0]+" "+t[1]  for t in zip(comm_legend, comm_scores)]
+    noncomm_legend = [ t[0]+" "+t[1]  for t in zip(noncomm_legend, noncomm_scores)]
+
+    legend = noncomm_legend + comm_legend
 
     # molecules to image
     img = Draw.MolsToGridImage(mols, molsPerRow=8, subImgSize=(200, 200),
