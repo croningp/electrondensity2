@@ -13,7 +13,7 @@ from src.models.ESP2smiles import ESP2S_Transformer
 from src.datasets.utils.tokenizer import Tokenizer
 
 # RUN PARAMS #############################################################################
-os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 RUN_FOLDER = 'logs/esp2smiles/'
 mode = 'build'  # use 'build' to start train, 'load' to continue an old train
 
@@ -29,7 +29,8 @@ if mode == 'build':
 else:  # mode == 'load'
     RUN_FOLDER += '2021-05-20/'  # fill with the right date
 
-DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/juanma/'  # in dragonsoop
+# DATA_FOLDER = '/media/group/d22cc883-8622-4ecd-8e46-e3b0850bb89a2/juanma/'  # in dragonsoop
+DATA_FOLDER = '/home/juanma/Data/'
 
 # DATA ###################################################################################
 # paths to the train and validation sets

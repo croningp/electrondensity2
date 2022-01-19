@@ -11,7 +11,7 @@
 
 from src.utils.TFRecordLoader import TFRecordLoader
 from src.datasets.utils.tokenizer import Tokenizer
-from src.models.ED2smiles import E2S_Transformer
+from src.models.ED_ESP2smiles import ED_ESP2S_Transformer
 from rdkit.Chem import Draw
 from rdkit import Chem
 import pandas as pd
@@ -25,6 +25,7 @@ from rdkit.Chem import RDConfig
 import sys
 sys.path.append(os.path.join(RDConfig.RDContribDir, 'SA_Score'))
 import sascorer
+
 
 def load_tokenizer(data_folder):
     """Just loads the tokenizer to convert tokens such as '30' into letters such as 'C'
@@ -57,7 +58,7 @@ def load_transformer_model(modelpath, datapath):
 
     # load validation data. We just need a batch to properly build the model
     path2va = datapath + 'valid.tfrecords'
-    tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['smiles'])
+    tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['electrostatic_potential', 'smiles'])
     batch = next(tfr_va.dataset_iter)
 
     # load the model configuration from the params.pkl file
@@ -65,15 +66,15 @@ def load_transformer_model(modelpath, datapath):
         config = pickle.load(handle)
 
     # create the model
-    e2s = E2S_Transformer(
+    e2s = ED_ESP2S_Transformer(
         num_hid=config[0],
         num_head=config[1],
         num_feed_forward=config[2],
         num_layers_enc=config[3],
         num_layers_dec=config[4],
-        use_tanh=True,
     )
-    e2s.build([batch[0].shape, batch[1].shape])
+    batch = next(tfr_va.dataset_iter)
+    e2s([ [batch[0], batch[1]], batch[2]])
 
     # load the weights and return it
     e2s.load_weights(os.path.join(modelpath, 'weights/weights.h5'))
@@ -86,14 +87,12 @@ if __name__ == "__main__":
 
     # parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="file to open", type=str)
+    parser.add_argument("folder", help="folder to open", type=str)
     args = parser.parse_args()
-    print('Opening {}'.format(args.file))
+    print('Opening {}'.format(args.folder))
 
     # load the model
-    e2s, batch = load_transformer_model('logs/e2s/2021-05-20/', DATA_FOLDER)
-    # e2s, batch = load_model('logs/e2s/2021-05-14/', DATA_FOLDER)
-    # e2s, batch = load_model('logs/e2s/2021-07-07/', DATA_FOLDER)
+    e2s, batch = load_transformer_model('logs/ed_esp2smiles/2021-12-09/', DATA_FOLDER)
 
     # load tokenizer
     toks = load_tokenizer(DATA_FOLDER)
@@ -101,12 +100,16 @@ if __name__ == "__main__":
     # load Dario's db of commercially available molecules
     commercialDB = pd.read_csv(DATA_FOLDER+'merged_db_MA.csv', usecols=['smiles'])
 
-    # load the electron densities
-    with open(args.file, 'rb') as pfile:
-        cubes = pickle.load(pfile)
+    # load the eds. I screwed when naming the files, ESP is actually ED.
+    with open(args.folder+"/cage_esp_optimized_final_ED.p", 'rb') as pfile:
+        ed_cubes = pickle.load(pfile)
+
+    # load the esps
+    with open(args.folder+"/cage_esp_optimized_final_ESP.p", 'rb') as pfile:
+        esp_cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
-    preds = e2s.generate([cubes, []], startid=0, greedy=True)
+    preds = e2s.generate([ed_cubes, esp_cubes, []], startid=0, greedy=True)
     preds = preds.numpy()
 
     smiles = []  # where to store the generated smiles

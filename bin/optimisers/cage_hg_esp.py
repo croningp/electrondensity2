@@ -20,43 +20,10 @@ from datetime import datetime
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from src.optimisers.maximise_hg_esp import load_VAEmodel, load_ED_to_ESP
-from src.optimisers.maximise_hg_esp import grad_ed_overlapping, grad_esp_overlapping
-from src.optimisers.maximise_size import grad_size
+from src.utils.optimiser_utils import load_VAEmodel, load_ED_to_ESP
+from src.utils.optimiser_utils import grad_ed_overlapping, grad_esp_overlapping
+from src.utils.optimiser_utils import grad_size, load_cage_host_ed_esp
 
-
-def load_host(filepathED, filepathESP, batch_size, tanh=True):
-    """Loads host saved as pickle file. The host pickles were prepared by Jarek.
-
-    Args:
-        filepathED: Path to the pickle file that contains the host molecule ED
-        filepathESP: Path to the pickle file that contains the host molecule ESP
-        batch_size: As the name says, batch size.
-        tanh: If doing a tanh after loading the molecule.
-
-    Returns:
-        Returns the host repeated batch_size times
-    """
-    with open(filepathED, 'rb') as file:
-        hosted = pickle.load(file)
-        if tanh:
-            hosted = np.tanh(hosted)  # tan h needed?
-        hosted = hosted.astype(np.float32)
-
-    with open(filepathESP, 'rb') as file:
-        hostesp = pickle.load(file)
-        hostesp = np.expand_dims(hostesp, axis=(0,-1))
-        hostesp = hostesp.astype(np.float32)
-        # we need to dillate host to use voxels of 5,5,5
-        datap = tf.nn.max_pool3d(hostesp, 5, 1, 'SAME')
-        datan = tf.nn.max_pool3d(hostesp*-1, 5, 1, 'SAME')
-        hostesp = datap + datan*-1
-
-    # cage is 80,80,80, cut out to get it as 64,64,64
-    hosted = hosted[:, 8:-8, 8:-8, 8:-8, :]
-    hostesp = hostesp[:, 8:-8, 8:-8, 8:-8, :]
-        
-    return tf.tile(hosted, [batch_size, 1, 1, 1, 1]), tf.tile(hostesp, [batch_size, 1, 1, 1, 1])
 
 
 if __name__ == "__main__":
@@ -81,7 +48,7 @@ if __name__ == "__main__":
     # DATA_FOLDER = '/media/extssd/juanma/' # in dragonsoop
     # DATA_FOLDER = '/home/juanma/Data/' # in maddog2020
 
-    host_ed, host_esp = load_host(
+    host_ed, host_esp = load_cage_host_ed_esp(
         DATA_FOLDER+'cage.pkl', DATA_FOLDER+'cage_esp.pkl', BATCH_SIZE)
     vae, z_dim = load_VAEmodel('logs/vae/2021-05-25/')
     ed_to_esp = load_ED_to_ESP('logs/vae_ed_esp/2021-07-18')

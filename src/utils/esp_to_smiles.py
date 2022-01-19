@@ -11,7 +11,7 @@
 
 from src.utils.TFRecordLoader import TFRecordLoader
 from src.datasets.utils.tokenizer import Tokenizer
-from src.models.ED2smiles import E2S_Transformer
+from src.models.ESP2smiles import ESP2S_Transformer
 from rdkit.Chem import Draw
 from rdkit import Chem
 import pandas as pd
@@ -25,6 +25,7 @@ from rdkit.Chem import RDConfig
 import sys
 sys.path.append(os.path.join(RDConfig.RDContribDir, 'SA_Score'))
 import sascorer
+
 
 def load_tokenizer(data_folder):
     """Just loads the tokenizer to convert tokens such as '30' into letters such as 'C'
@@ -43,7 +44,7 @@ def load_tokenizer(data_folder):
     return tokenizer
 
 
-def load_transformer_model(modelpath, datapath):
+def load_model(modelpath, datapath):
     """Create model from config file, and load the weights
 
     Args:
@@ -57,7 +58,7 @@ def load_transformer_model(modelpath, datapath):
 
     # load validation data. We just need a batch to properly build the model
     path2va = datapath + 'valid.tfrecords'
-    tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['smiles'])
+    tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['electrostatic_potential', 'smiles'])
     batch = next(tfr_va.dataset_iter)
 
     # load the model configuration from the params.pkl file
@@ -65,15 +66,14 @@ def load_transformer_model(modelpath, datapath):
         config = pickle.load(handle)
 
     # create the model
-    e2s = E2S_Transformer(
+    e2s = ESP2S_Transformer(
         num_hid=config[0],
         num_head=config[1],
         num_feed_forward=config[2],
         num_layers_enc=config[3],
         num_layers_dec=config[4],
-        use_tanh=True,
     )
-    e2s.build([batch[0].shape, batch[1].shape])
+    e2s.build([batch[1].shape, batch[2].shape])
 
     # load the weights and return it
     e2s.load_weights(os.path.join(modelpath, 'weights/weights.h5'))
@@ -91,9 +91,7 @@ if __name__ == "__main__":
     print('Opening {}'.format(args.file))
 
     # load the model
-    e2s, batch = load_transformer_model('logs/e2s/2021-05-20/', DATA_FOLDER)
-    # e2s, batch = load_model('logs/e2s/2021-05-14/', DATA_FOLDER)
-    # e2s, batch = load_model('logs/e2s/2021-07-07/', DATA_FOLDER)
+    e2s, batch = load_model('logs/esp2s/2021-08-17/', DATA_FOLDER)
 
     # load tokenizer
     toks = load_tokenizer(DATA_FOLDER)
@@ -101,12 +99,12 @@ if __name__ == "__main__":
     # load Dario's db of commercially available molecules
     commercialDB = pd.read_csv(DATA_FOLDER+'merged_db_MA.csv', usecols=['smiles'])
 
-    # load the electron densities
+    # load the electrostatic potentials
     with open(args.file, 'rb') as pfile:
         cubes = pickle.load(pfile)
 
     # use model to generate token predictions based on the electron densities
-    preds = e2s.generate([cubes, []], startid=0, greedy=True)
+    preds = e2s.generate([[], cubes, []], startid=0, greedy=True)
     preds = preds.numpy()
 
     smiles = []  # where to store the generated smiles
@@ -127,32 +125,19 @@ if __name__ == "__main__":
 
     print(smiles)
 
-    # check if these molecules are commercially avaiable
-    # i want to print the commercial the last, for easier visualisation
-    commercial_smiles = [ s for s in smiles if s in commercialDB.values]
-    noncommercial_smiles = [ s for s in smiles if s not in commercialDB.values ]
-
     # now smiles to molecules
-    comm_mols = [Chem.MolFromSmiles(m) for m in commercial_smiles]
-    noncomm_mols = [Chem.MolFromSmiles(m) for m in noncommercial_smiles]
-    mols = noncomm_mols + comm_mols
+    mols = [Chem.MolFromSmiles(m) for m in smiles]
 
     # calculate synthetic scores
-    comm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in comm_mols]
-    noncomm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in noncomm_mols]
+    scores = [sascorer.calculateScore(m) if m is not None else 10 for m in mols]
     # transform them to strings
-    comm_scores = [ f"{s:.1f}" for s in comm_scores]
-    noncomm_scores = [ f"{s:.1f}" for s in noncomm_scores]
+    scores = [ f"{s:.1f}" for s in scores]
 
-    # create legend with commercial availability
-    comm_legend = [ s+" Y" for s in commercial_smiles ]
-    noncomm_legend = [ s+" N" for s in noncommercial_smiles ]
+    # check if these molecules are commercially avaiable
+    legend = [ s+" Y" if s in commercialDB.values else s+" N" for s in smiles ]
 
     # add the scores
-    comm_legend = [ t[0]+" "+t[1]  for t in zip(comm_legend, comm_scores)]
-    noncomm_legend = [ t[0]+" "+t[1]  for t in zip(noncomm_legend, noncomm_scores)]
-
-    legend = noncomm_legend + comm_legend
+    legend = [ t[0]+" "+t[1]  for t in zip(legend, scores)]
 
     # molecules to image
     img = Draw.MolsToGridImage(mols, molsPerRow=8, subImgSize=(200, 200),
