@@ -58,6 +58,7 @@ if __name__ == "__main__":
         origesps = datap + datan*-1
 
         for i in range(args.render):
+            print(i+1)
             ed = cubes[0][i, :, :, :, 0]
             geneesp = cubes[2][i, :, :, :, 0]
             origesp = origesps[i, :, :, :, 0]
@@ -67,4 +68,5 @@ if __name__ == "__main__":
             output.view_with_mayavi(grid.x, grid.y, grid.z, geneesp)
     else:
         for i in range(args.render):
+            print(i+1)
             output.view_with_mayavi(grid.x, grid.y, grid.z, cubes[i][:, :, :, 0])
