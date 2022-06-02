@@ -58,7 +58,8 @@ def load_transformer_model(modelpath, datapath):
 
     # load validation data. We just need a batch to properly build the model
     path2va = datapath + 'valid.tfrecords'
-    tfr_va = TFRecordLoader(path2va, batch_size=64, properties=['electrostatic_potential', 'smiles'])
+    tfr_va = TFRecordLoader(path2va, batch_size=64,
+                            properties=['electrostatic_potential', 'smiles'])
     batch = next(tfr_va.dataset_iter)
 
     # load the model configuration from the params.pkl file
@@ -74,7 +75,7 @@ def load_transformer_model(modelpath, datapath):
         num_layers_dec=config[4],
     )
     batch = next(tfr_va.dataset_iter)
-    e2s([ [batch[0], batch[1]], batch[2]])
+    e2s([[batch[0], batch[1]], batch[2]])
 
     # load the weights and return it
     e2s.load_weights(os.path.join(modelpath, 'weights/weights.h5'))
@@ -132,8 +133,8 @@ if __name__ == "__main__":
 
     # check if these molecules are commercially avaiable
     # i want to print the commercial the last, for easier visualisation
-    commercial_smiles = [ s for s in smiles if s in commercialDB.values]
-    noncommercial_smiles = [ s for s in smiles if s not in commercialDB.values ]
+    commercial_smiles = [s for s in smiles if s in commercialDB.values]
+    noncommercial_smiles = [s for s in smiles if s not in commercialDB.values]
 
     # now smiles to molecules
     comm_mols = [Chem.MolFromSmiles(m) for m in commercial_smiles]
@@ -142,18 +143,19 @@ if __name__ == "__main__":
 
     # calculate synthetic scores
     comm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in comm_mols]
-    noncomm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in noncomm_mols]
+    noncomm_scores = [sascorer.calculateScore(m) if m is not None else 10
+                      for m in noncomm_mols]
     # transform them to strings
-    comm_scores = [ f"{s:.1f}" for s in comm_scores]
-    noncomm_scores = [ f"{s:.1f}" for s in noncomm_scores]
+    comm_scores = [f"{s:.1f}" for s in comm_scores]
+    noncomm_scores = [f"{s:.1f}" for s in noncomm_scores]
 
     # create legend with commercial availability
-    comm_legend = [ s+" Y" for s in commercial_smiles ]
-    noncomm_legend = [ s+" N" for s in noncommercial_smiles ]
+    comm_legend = [s+" Y" for s in commercial_smiles]
+    noncomm_legend = [s+" N" for s in noncommercial_smiles]
 
     # add the scores
-    comm_legend = [ t[0]+" "+t[1]  for t in zip(comm_legend, comm_scores)]
-    noncomm_legend = [ t[0]+" "+t[1]  for t in zip(noncomm_legend, noncomm_scores)]
+    comm_legend = [t[0]+" "+t[1] for t in zip(comm_legend, comm_scores)]
+    noncomm_legend = [t[0]+" "+t[1] for t in zip(noncomm_legend, noncomm_scores)]
 
     legend = noncomm_legend + comm_legend
 

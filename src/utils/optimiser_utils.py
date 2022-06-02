@@ -13,7 +13,7 @@ import numpy as np
 from tensorflow.keras import backend as K
 
 from src.models.VAEresnet import VAEresnet
-from src.models.VAE_ed_esp import VAE_ed_esp
+from src.models.ED2ESP import VAE_ed_esp
 from src.utils import transform_ed, transform_back_ed
 from src.utils.TFRecordLoader import TFRecordLoader
 

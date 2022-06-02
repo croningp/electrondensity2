@@ -1,9 +1,7 @@
 ##########################################################################################
 #
-# This script is a sort of main file for the model in src.models.VAEAttention.py, which is 
-# a variational autoencoder using self-attention. This script will aim to show to train 
-# it, and also to save and load the model.
-# This file is modified to train in Dragonsoop
+# This script is a sort of main file for ED2ESP (FCN) model. This script will aim to 
+# show to train it, and also to save and load the model.
 #
 # Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
@@ -14,7 +12,7 @@ from datetime import datetime
 import tensorflow as tf
 
 from src.utils.TFRecordLoader import TFRecordLoader
-from src.models.VAE_ed_esp import VAE_ed_esp
+from src.models.ED2ESP import VAE_ed_esp
 
 # RUN PARAMS #############################################################################
 os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5'

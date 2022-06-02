@@ -54,7 +54,7 @@ class VAEattention(VariationalAutoencoder):
             x = conv_block(x, kernel_size, fmaps, stage=i, block='a', strides=strides)
             x = identity_block(x, kernel_size, fmaps, stage=i, block='b')
 
-            # last layer, add residual blocks
+            # last layer, add transformer block
             if i == (self.n_layers_encoder-1):
                 x = TransformerBlock(filters)(x)
                 # x = TransformerBlock(filters)(x)

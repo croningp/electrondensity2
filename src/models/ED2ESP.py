@@ -58,19 +58,13 @@ class ED2ESP(VAEModel):
 
         x = self.preprocess_data(data[0])
         y = self.preprocess_esp(data[1])
-        
-        # z_mean, z_log_var, z = self.encoder(x)
+
         z = self.encoder(x)
         y_nn = self.decoder(z)
         reconstruction_loss = tf.reduce_mean(
             tf.square(y - y_nn), axis=[1, 2, 3, 4]
         )
-        # reconstruction_loss *= self.r_loss_factor
-        # kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
-        # kl_loss = tf.reduce_sum(kl_loss, axis=1)
-        # kl_loss *= -0.5
-        # total_loss = reconstruction_loss + kl_loss
-        # return total_loss, reconstruction_loss, kl_loss
+
         return reconstruction_loss
 
     def train_step(self, data):
@@ -130,26 +124,11 @@ class VAE_ed_esp(VariationalAutoencoder):
             x = conv_block(x, kernel_size, filters, stage=i, block='a', strides=strides)
             x = identity_block(x, kernel_size, filters, stage=i, block='b')
 
-        # shape_before_flattening = K.int_shape(x)[1:]
-
-        # x = Flatten()(x)
-        # self.mu = Dense(self.z_dim, name='mu')(x)
-        # self.log_var = Dense(self.z_dim, name='log_var')(x)
-
-        # self.z = Sampling(name='encoder_output')([self.mu, self.log_var])
-
-        # self.encoder = Model(
-        #     encoder_input, [self.mu, self.log_var, self.z], name='encoder'
-        #     )
-        self.encoder = Model (encoder_input, x, name='encoder')
+        self.encoder = Model(encoder_input, x, name='encoder')
 
         # THE DECODER
-        # decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
         decoder_input = Input(shape=K.int_shape(x)[1:], name='decoder_input')
         x = decoder_input
-
-        # x = Dense(np.prod(shape_before_flattening))(decoder_input)
-        # x = Reshape(shape_before_flattening)(x)
 
         for i in range(self.n_layers_decoder):
             # just fetch the parameters in a variable so it doesn't get super long

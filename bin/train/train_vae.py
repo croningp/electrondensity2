@@ -1,8 +1,7 @@
 ##########################################################################################
 #
-# This script is a sort of main file for the model in src.models.VAEAttention.py, which is 
-# a variational autoencoder using self-attention. This script will aim to show to train 
-# it, and also to save and load the model.
+# This script is a sort of main file for the model in src.models.VAE.py, and other VAE
+# variants. This script will aim to show to train it, and also to save and load the model.
 # This file is modified to train in Dragonsoop
 #
 # Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
