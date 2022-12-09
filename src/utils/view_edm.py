@@ -35,20 +35,26 @@ if __name__ == "__main__":
     #     # host = pickle.load(pfile)[8:-8, 8:-8, 8:-8]
     #     # output.view_with_mayavi(grid.x, grid.y, grid.z, host)
 
-    # host = np.float32(host)
-    # host = np.expand_dims(host, axis=[0, -1])
-    # # output.view_with_mayavi(grid.x, grid.y, grid.z, host[0,:,:,:,0])
-    # datap = max_pool3d(host, 2, 1, 'SAME')
-    # datan = max_pool3d(host*-1, 2, 1, 'SAME')
-    # host = datap + datan*-1
-    # # output.view_with_mayavi(grid.x, grid.y, grid.z, host[0, :, :, :, 0])
+    # with open("cc6_esp.pkl", 'rb') as pfile:
+    #     host = pickle.load(pfile) #* -1
 
-    with open("cage_esp_optimized_final_ESP.p", 'rb') as pfile:
-        esp = pickle.load(pfile)
-        datap = max_pool3d(esp, 3, 1, 'SAME')
-        datan = max_pool3d(esp*-1, 3, 1, 'SAME')
-        esp = datap + datan*-1
-        esp = esp / 0.33
+    with open("pdcage_esp.pkl", 'rb') as pfile:
+        host = pickle.load(pfile)[8:-8, 8:-8, 8:-8] #* -1
+
+    host = np.float32(host)
+    host = np.expand_dims(host, axis=[0, -1])
+    # output.view_with_mayavi(grid.x, grid.y, grid.z, host[0,:,:,:,0])
+    datap = max_pool3d(host, 5, 1, 'SAME')
+    datan = max_pool3d(host*-1, 5, 1, 'SAME')
+    host = datap*1 + datan*-1
+    output.view_with_mayavi(grid.x, grid.y, grid.z, host[0, :, :, :, 0])
+
+    # with open("cage_esp_optimized_final_ESP.p", 'rb') as pfile:
+    #     esp = pickle.load(pfile)
+    #     datap = max_pool3d(esp, 3, 1, 'SAME')
+    #     datan = max_pool3d(esp*-1, 3, 1, 'SAME')
+    #     esp = datap + datan*-1
+    #     esp = esp / 0.33
     
 
     if len(cubes) == 2:
@@ -77,4 +83,5 @@ if __name__ == "__main__":
     else:
         for i in range(args.render):
             print(i+1)
-            output.view_with_mayavi(grid.x, grid.y, grid.z, esp[1]*cubes[1][:, :, :, 0])
+            # output.view_with_mayavi(grid.x, grid.y, grid.z, esp[1]*cubes[1][:, :, :, 0])
+            output.view_with_mayavi(grid.x, grid.y, grid.z, host+cubes[i][:, :, :, 0])
