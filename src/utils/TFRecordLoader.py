@@ -6,7 +6,7 @@
 # This code is a mixture of https://keras.io/examples/keras_recipes/tfrecord/
 # and how Jarek did it on the branch "developer" (develop/input/tfrecords.py)
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
 #
 ##########################################################################################
 

@@ -7,7 +7,7 @@
 # This code is used with the CB6 host. With the cage host, search the files with cage
 # as aprt of the name.
 #
-# Author: juanma@chem.gla.ac.uk
+# Author: juanma.parrilla@gcu.ac.uk
 #
 ##########################################################################################
 

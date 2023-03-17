@@ -7,7 +7,7 @@
 # This code is an extension of the one called "cage_hg.py" but also calculating for
 # electron density
 #
-# Author: Juanma juanma@chem.gla.ac.uk
+# Author: Juanma juanma.parrilla@gcu.ac.uk
 #
 ##########################################################################################
 

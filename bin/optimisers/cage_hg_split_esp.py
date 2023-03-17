@@ -6,7 +6,7 @@
 # the guest with both of them, and then merge them together using a factor. This way
 # you can give a bigger focus to positive or negative charges.
 #
-# Author: Juanma juanma@chem.gla.ac.uk
+# Author: Juanma juanma.parrilla@gcu.ac.uk
 #
 ##########################################################################################
 

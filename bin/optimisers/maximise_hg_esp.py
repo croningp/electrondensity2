@@ -6,7 +6,7 @@
 # the molecules with different signs nearby.
 # In the comments and code, ED means electron density, ESP means electrostatic potential
 #
-# Author: juanma@chem.gla.ac.uk
+# Author: juanma.parrilla@gcu.ac.uk
 #
 ##########################################################################################
 

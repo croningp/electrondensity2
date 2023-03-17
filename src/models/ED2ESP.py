@@ -3,7 +3,7 @@
 # This code is very similar to VAEresnet, but instead of trying to reconstruct its input
 # as a VAE does, it tries to convert electron densities to electro static potentials.
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
 #
 ##########################################################################################
 

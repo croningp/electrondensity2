@@ -4,7 +4,7 @@
 # variants. This script will aim to show to train it, and also to save and load the model.
 # This file is modified to train in Dragonsoop
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
 #
 ##########################################################################################
 

@@ -8,7 +8,7 @@
 # from that repo. I suggest you get the book and check chapter 3, because the
 # code is very well explained there.
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
 #
 ##########################################################################################
 

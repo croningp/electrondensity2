@@ -4,7 +4,7 @@
 # For it to match, all the tokens (from start to first stop) need to match perfectly.
 # Given a folder with weights, it will load them into the model, and test the accuracy
 # against the test set.
-# Author: juanma@chem.gla.ac.uk
+# Author: juanma.parrilla@gcu.ac.uk
 #
 #########################################################################################
 

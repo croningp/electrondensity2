@@ -4,7 +4,7 @@
 # generate the smiles, save them as a pickle file, and then it will use rdkit to generate
 # molecule visualisations.
 #
-# @author: Juan Manuel Parrilla (juanma@chem.gla.ac.uk)
+# @author: Juan Manuel Parrilla (juanma.parrilla@gcu.ac.uk)
 #
 ##########################################################################################
 

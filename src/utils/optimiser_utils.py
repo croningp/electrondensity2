@@ -2,7 +2,7 @@
 #
 # Some shared functionality for the optimiser scripts.
 #
-# Author: juanma@chem.gla.ac.uk
+# Author: juanma.parrilla@gcu.ac.uk
 #
 ##########################################################################################
 

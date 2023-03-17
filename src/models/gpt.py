@@ -8,7 +8,7 @@
 # I am not adding comments to most of the stuff that is directly copy-pasted. Check the
 # tutorials above and then you will easily understand it.
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
 #
 ##########################################################################################
 

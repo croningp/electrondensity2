@@ -4,7 +4,7 @@
 # - identity_block and conv_block are copied from keras resnet50, using conv3d instead.
 # - attention is adapted from taki0112 SAGAN implementation
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
 #
 ##########################################################################################
 
