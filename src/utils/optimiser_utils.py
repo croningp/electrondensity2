@@ -49,13 +49,14 @@ def initial_population(batch_size, random=True, z_dim=400, datapath="", vae=None
         return z
 
 
-def load_host(filepath, batch_size, tanh=True):
+def load_host(filepath, batch_size, tanh=True, expand_dims=False):
     """Loads host saved as pickle file. The host pickles were prepared by Jarek.
 
     Args:
         filepath: Path to the pickle file that contains the host molecule
         batch_size: As the name says, batch size.
         tanh: If doing a tanh after loading the molecule.
+        expand_dims: Add an extra empty dimension at [0] and at [-1]
 
     Returns:
         Returns the host repeated batch_size times
@@ -66,10 +67,13 @@ def load_host(filepath, batch_size, tanh=True):
             host = np.tanh(host)  # tan h needed?
         host = host.astype(np.float32)
 
+    if expand_dims:
+        host = np.expand_dims(host, axis=[0, -1])
+
     return tf.tile(host, [batch_size, 1, 1, 1, 1])
 
 
-def load_host_ed_esp(filepathED, filepathESP, batch_size, tanh=True):
+def load_host_ed_esp(filepathED, filepathESP, batch_size, tanh=True, expand_dims=False, thicken=False):
     """Loads host saved as pickle file. The host pickles were prepared by Jarek.
 
     Args:
@@ -77,6 +81,8 @@ def load_host_ed_esp(filepathED, filepathESP, batch_size, tanh=True):
         filepathESP: Path to the pickle file that contains the host molecule ESP
         batch_size: As the name says, batch size.
         tanh: If doing a tanh after loading the molecule.
+        expand_dims: Add an extra empty dimension at [0] and at [-1]
+        thicken: If true the ED will be thicker and thus the cavity smaller
 
     Returns:
         Returns the host repeated batch_size times
@@ -95,6 +101,12 @@ def load_host_ed_esp(filepathED, filepathESP, batch_size, tanh=True):
         datap = tf.nn.max_pool3d(hostesp, 5, 1, 'SAME')
         datan = tf.nn.max_pool3d(hostesp*-1, 5, 1, 'SAME')
         hostesp = datap + datan*-1
+
+    if expand_dims:
+        hosted = np.expand_dims(hosted, axis=[0, -1])
+
+    if thicken:
+        hosted = tf.nn.max_pool3d(hosted, 3, 1, 'SAME')
         
     return tf.tile(hosted, [batch_size, 1, 1, 1, 1]), tf.tile(hostesp, [batch_size, 1, 1, 1, 1])
 
