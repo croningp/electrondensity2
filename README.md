@@ -22,5 +22,5 @@ source env.sh
 python bin/generate_dataset.py QM9
 ```
 This command will download and generate electron densities for QM9 dataset (it requires 256GB od harddisk space) using number of CPUs specified in CPU_COUNT.
-### Training the model
-### Generating new electron densities
+### Supplementary information
+Please check the supplementer information document for full documentation about how to install, train and run the different models.
