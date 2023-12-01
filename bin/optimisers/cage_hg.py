@@ -5,7 +5,7 @@
 # Because the cage is big, this code will alternate cycles of maximising size and 
 # minimising overlapping. Hopefully this way we get a big molecule.
 #
-# Author: Juanma juanma.parrilla@gcu.ac.uk
+# Author: Juanma juanma@chem.gla.ac.uk
 #
 ##########################################################################################
 

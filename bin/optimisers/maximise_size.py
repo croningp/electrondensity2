@@ -5,7 +5,7 @@
 # hosts and guests via gradient descent. Main difference is that he was using the GAN to
 # generate the guests, while I will use the trained VAE.
 #
-# Author: juanma.parrilla@gcu.ac.uk
+# Author: juanma@chem.gla.ac.uk
 #
 ##########################################################################################
 

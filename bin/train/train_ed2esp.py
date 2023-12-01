@@ -3,7 +3,7 @@
 # This script is a sort of main file for ED2ESP (FCN) model. This script will aim to 
 # show to train it, and also to save and load the model.
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
 ##########################################################################################
 

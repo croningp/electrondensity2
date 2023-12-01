@@ -10,7 +10,7 @@
 # where that 5.0 after std_dev is the standard dev of the random latent vector and
 # that 1000 after Nsmiles is the number of smiles to generate
 #
-# Author: Juanma juanma.parrilla@gcu.ac.uk
+# Author: Juanma juanma@chem.gla.ac.uk
 #
 ##########################################################################################
 

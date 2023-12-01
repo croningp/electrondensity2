@@ -7,7 +7,7 @@
 # This code is an extension of the one called "cage_hg.py" but also calculating for
 # electron density
 #
-# Author: Juanma juanma.parrilla@gcu.ac.uk
+# Author: Juanma juanma@chem.gla.ac.uk
 #
 ##########################################################################################
 
@@ -83,26 +83,26 @@ if __name__ == "__main__":
 
         for j in tqdm.tqdm(range(int(10000/factor))):
             # try to minimise overlapping ESP
-            f, grads, output, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
+            f, grads, eds, esps = grad_esp_overlapping(noise_t, vae, ed_to_esp, host_esp)
             print(np.mean(f.numpy()))
             noise_t -= lr * grads[0].numpy() * (1-ed_factor)
             # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open(RUN_FOLDER+'cage_esp_optimizedESPED'+slr+'.p', 'wb') as file:
-                    pickle.dump(output, file)
+                    pickle.dump(eds, file)
                 with open(RUN_FOLDER+'cage_esp_optimizedESP'+slr+'.p', 'wb') as file:
                     pickle.dump(esps, file)
 
             # try to minimise overlapping ED
-            f, grads, output = grad_ed_overlapping(noise_t, vae, host_ed)
+            f, grads, eds = grad_ed_overlapping(noise_t, vae, host_ed)
             print(np.mean(f.numpy()))
             noise_t -= lr * grads[0].numpy() * ed_factor
             # noise_t = np.clip(noise_t, a_min=-5.0, a_max=5.0)
 
             if j % 1000 == 0:
                 with open(RUN_FOLDER+'cage_esp_optimizedEDED'+slr+'.p', 'wb') as file:
-                    pickle.dump(output, file)
+                    pickle.dump(eds, file)
 
     with open(RUN_FOLDER+'cage_esp_optimized_final.p', 'wb') as file:
         pickle.dump(output, file)

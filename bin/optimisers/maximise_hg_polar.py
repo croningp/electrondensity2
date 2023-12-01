@@ -5,7 +5,7 @@
 # "host_guest_overlapping.py" and "maximise_polar.py". This script is like those two
 # together.
 #
-# Author: juanma.parrilla@gcu.ac.uk
+# Author: juanma@chem.gla.ac.uk
 #
 ##########################################################################################
 

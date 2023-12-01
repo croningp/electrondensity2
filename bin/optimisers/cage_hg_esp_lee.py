@@ -4,7 +4,7 @@
 # Basically, instead of doing two steps each iteration, one for ED and one for ESP,
 # we will make a function that combines them into a single step.
 #
-# Author: Juanma juanma.parrilla@gcu.ac.uk
+# Author: Juanma juanma@chem.gla.ac.uk
 #
 ##########################################################################################
 
