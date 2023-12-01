@@ -1,5 +1,9 @@
 # ElectronDensity2
 
+This repository is related to the paper "Electron Density-Based GPT for Optimization and Suggestion of Host-Guest Binders". Please check the manuscript, and especially the Supplementary Information document, for full information about how to run the model, and about the results we obtained.
+
+What follows is a very brief guide about how to get the repository started.
+
 ### Setup
 
 We recommend running Electrondensity in conda environment. The following command creates conda environment with necessary dependencies. 
@@ -23,4 +27,4 @@ python bin/generate_dataset.py QM9
 ```
 This command will download and generate electron densities for QM9 dataset (it requires 256GB od harddisk space) using number of CPUs specified in CPU_COUNT.
 ### Supplementary information
-Please check the supplementer information document for full documentation about how to install, train and run the different models.
+Please check the Supplementary Information document for full documentation about how to install, train and run the different models.
