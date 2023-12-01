@@ -20,8 +20,8 @@ from src.datasets.utils import download_and_unpack
 from src.datasets.utils.esp import ESP
 from src.datasets.utils.xtb import prepare_xtb_input, run_xtb
 from src.datasets.utils.orbkit import electron_density_from_molden
-from src.datasets.utils.tokenizer import Tokenizer
-from src.datasets.utils.tfrecords import parellel_serialize_to_tfrecords, tfrecord_reader
+from src.datasets.utils.tokenizer import Tokenizer, SelfiesTokenizer
+from src.datasets.utils.tfrecords import parellel_serialize_to_tfrecords, tfrecord_reader, serialize_to_tfrecords
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +107,10 @@ class QM9Dataset(Dataset):
         return os.path.join(self.dir, 'tokenizer_config.json')
     
     @property
+    def sf_token_config_path(self):
+        return os.path.join(self.dir, 'sf_token_config.json')
+    
+    @property
     def output_dir(self):
         return os.path.join(self.dir, 'output')
     
@@ -187,12 +191,22 @@ class QM9Dataset(Dataset):
             
     def _initialize_tokenizer(self):
         """
-        This function initializes tokenizer for QM9 dataset SMILES.
+        This function initializes tokenizer for QM9 dataset SMILES and SELFIES.
         """
+
+        # if from scratch, uncomment next line and comment the other two
+        # if the smiles dataset pickle was already generated, comment next one and uncomment next 2
+        # dataset_smiles = self.get_dataset_smiles()
+        with open("/home/nvme/juanma/Data/ED/dataset_smiles_qm9.pkl", 'rb') as file:
+            dataset_smiles = pickle.load(file)
+
         self.tokenizer = Tokenizer()
-        dataset_smiles = self.get_dataset_smiles()
         self.tokenizer.initilize_from_dataset(dataset_smiles)
         self.tokenizer.save_config(self.tokenizer_config_path)
+
+        self.sf_tokenizer = SelfiesTokenizer()
+        self.sf_tokenizer.initialise_from_dataset(dataset_smiles)
+        self.sf_tokenizer.save_config(self.sf_token_config_path)
             
     def _split_dataset(self, train_ratio=0.9, valid_ratio=0.1):
         
@@ -211,7 +225,7 @@ class QM9Dataset(Dataset):
         valid_set = ed_paths[train_idx:valid_idx]
         test_set = ed_paths[valid_idx:]
         
-        return train_set, valid_set, test_set
+        return train_set, valid_set # , test_set
         
     
     def get_eds_paths(self) -> List[str]:
@@ -256,7 +270,7 @@ class QM9Dataset(Dataset):
         logger.info('Downloading and extracting QM9 dataset')
         download_and_unpack(self.url, self.sourcedir)
         logger.info('Computing electron densities')
-        self._compute_electron_density(rewrite=False, esp=True)
+        # self._compute_electron_density(rewrite=False, esp=True)
         logger.info('Creating dataset SMILES tokenizer')
         self._initialize_tokenizer()
         logger.info('Splitting and serializing dataset into tfrecords')
@@ -264,8 +278,12 @@ class QM9Dataset(Dataset):
         for key, split in zip(['train', 'valid', 'test'], splits):
             logger.info('Creating {} set'.format(key))
             split_output_path = os.path.join(self.dir, '{}.tfrecords'.format(key))
+            print(CPU_COUNT)
             parellel_serialize_to_tfrecords(split, split_output_path,
-                                            self.tokenizer_config_path, num_processes=CPU_COUNT)
+                                            self.tokenizer_config_path, self.sf_token_config_path,
+                                            num_processes=CPU_COUNT)
+            # serialize_to_tfrecords(split, split_output_path,
+            #                        self.tokenizer_config_path, self.sf_token_config_path)
             
             
     def load(self,

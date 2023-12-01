@@ -4,7 +4,7 @@
 # generate the smiles, save them as a pickle file, and then it will use rdkit to generate
 # molecule visualisations.
 #
-# @author: Juan Manuel Parrilla (juanma.parrilla@gcu.ac.uk)
+# @author: Juan Manuel Parrilla (juanma@chem.gla.ac.uk)
 #
 ##########################################################################################
 
@@ -17,6 +17,7 @@ from rdkit import Chem
 import pandas as pd
 import argparse
 import pickle
+import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -92,8 +93,8 @@ if __name__ == "__main__":
 
     # load the model
     e2s, batch = load_transformer_model('logs/e2s/2021-05-20/', DATA_FOLDER)
-    # e2s, batch = load_model('logs/e2s/2021-05-14/', DATA_FOLDER)
-    # e2s, batch = load_model('logs/e2s/2021-07-07/', DATA_FOLDER)
+    # e2s, batch = load_transformer_model('logs/e2s/2021-05-14/', DATA_FOLDER)
+    # e2s, batch = load_transformer_model('logs/e2s/2021-07-07/', DATA_FOLDER)
 
     # load tokenizer
     toks = load_tokenizer(DATA_FOLDER)
@@ -105,56 +106,60 @@ if __name__ == "__main__":
     with open(args.file, 'rb') as pfile:
         cubes = pickle.load(pfile)
 
-    # use model to generate token predictions based on the electron densities
-    preds = e2s.generate([cubes, []], startid=0, greedy=True)
-    preds = preds.numpy()
 
-    smiles = []  # where to store the generated smiles
-    target_end_token_idx = 31  # 31 means END
+    repeat = True
+    while repeat:
+        # use model to generate token predictions based on the electron densities
+        preds = e2s.generate([cubes, []], startid=0, greedy=False)
+        preds = preds.numpy()
 
-    # now we will transform the tokens into smiles letter
-    for i in range(len(preds)):
-        prediction = ""
-        for idx in preds[i, 1:]:
-            prediction += toks.num2token[str(idx)]
-            if idx == target_end_token_idx:
-                break
+        smiles = []  # where to store the generated smiles
+        target_end_token_idx = 31  # 31 means END
 
-        # clean out the tokens
-        prediction = prediction.replace('STOP', '')
-        # add to results
-        smiles.append(prediction)
+        # now we will transform the tokens into smiles letter
+        for i in range(len(preds)):
+            prediction = ""
+            for idx in preds[i, 1:]:
+                prediction += toks.num2token[str(idx)]
+                if idx == target_end_token_idx:
+                    break
 
-    print(smiles)
+            # clean out the tokens
+            prediction = prediction.replace('STOP', '')
+            # add to results
+            smiles.append(prediction)
 
-    # check if these molecules are commercially avaiable
-    # i want to print the commercial the last, for easier visualisation
-    commercial_smiles = [ s for s in smiles if s in commercialDB.values]
-    noncommercial_smiles = [ s for s in smiles if s not in commercialDB.values ]
+        print(smiles)
 
-    # now smiles to molecules
-    comm_mols = [Chem.MolFromSmiles(m) for m in commercial_smiles]
-    noncomm_mols = [Chem.MolFromSmiles(m) for m in noncommercial_smiles]
-    mols = noncomm_mols + comm_mols
+        # check if these molecules are commercially avaiable
+        # i want to print the commercial the last, for easier visualisation
+        commercial_smiles = [ s for s in smiles if s in commercialDB.values]
+        noncommercial_smiles = [ s for s in smiles if s not in commercialDB.values ]
 
-    # calculate synthetic scores
-    comm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in comm_mols]
-    noncomm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in noncomm_mols]
-    # transform them to strings
-    comm_scores = [ f"{s:.1f}" for s in comm_scores]
-    noncomm_scores = [ f"{s:.1f}" for s in noncomm_scores]
+        # now smiles to molecules
+        comm_mols = [Chem.MolFromSmiles(m) for m in commercial_smiles]
+        noncomm_mols = [Chem.MolFromSmiles(m) for m in noncommercial_smiles]
+        mols = noncomm_mols + comm_mols
 
-    # create legend with commercial availability
-    comm_legend = [ s+" Y" for s in commercial_smiles ]
-    noncomm_legend = [ s+" N" for s in noncommercial_smiles ]
+        # calculate synthetic scores
+        comm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in comm_mols]
+        noncomm_scores = [sascorer.calculateScore(m) if m is not None else 10 for m in noncomm_mols]
+        # transform them to strings
+        comm_scores = [ f"{s:.1f}" for s in comm_scores]
+        noncomm_scores = [ f"{s:.1f}" for s in noncomm_scores]
 
-    # add the scores
-    comm_legend = [ t[0]+" "+t[1]  for t in zip(comm_legend, comm_scores)]
-    noncomm_legend = [ t[0]+" "+t[1]  for t in zip(noncomm_legend, noncomm_scores)]
+        # create legend with commercial availability
+        comm_legend = [ s+" Y" for s in commercial_smiles ]
+        noncomm_legend = [ s+" N" for s in noncommercial_smiles ]
 
-    legend = noncomm_legend + comm_legend
+        # add the scores
+        comm_legend = [ t[0]+" "+t[1]  for t in zip(comm_legend, comm_scores)]
+        noncomm_legend = [ t[0]+" "+t[1]  for t in zip(noncomm_legend, noncomm_scores)]
 
-    # molecules to image
-    img = Draw.MolsToGridImage(mols, molsPerRow=8, subImgSize=(200, 200),
-                               legends=legend)
-    img.save('smiles'+'.png')
+        legend = noncomm_legend + comm_legend
+
+        # molecules to image
+        img = Draw.MolsToGridImage(mols, molsPerRow=8, subImgSize=(200, 200),
+                                legends=legend)
+        img.save('smiles'+'.png')
+

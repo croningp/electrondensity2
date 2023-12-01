@@ -2,7 +2,7 @@
 # Created on Thu Apr  9 11:29:39 2020. Displays the electron density using orbkit
 # and mayavi.
 #
-# @author: jmg. Adapted now by Juan Manuel Parrilla (juanma.parrilla@gcu.ac.uk)
+# @author: jmg. Adapted now by Juan Manuel Parrilla (juanma@chem.gla.ac.uk)
 #
 ##########################################################################################
 

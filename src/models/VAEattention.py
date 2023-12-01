@@ -6,7 +6,7 @@
 # do was reducing the dimensionality from 4D to 2D, because that's the shape of the
 # self-attention that the smiles decoder will need.
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
 ##########################################################################################
 

@@ -1,5 +1,7 @@
 import re
 import json
+import pickle
+import selfies as sf
 from typing import List, Tuple
 
 def tokenize_smiles(smiles: str) -> List[str]:
@@ -189,3 +191,114 @@ class Tokenizer(object):
         """
         decoded_smiles = [self.decode_smiles(s) for s in encoded_smiles]
         return decoded_smiles
+
+class SelfiesTokenizer(object):
+    """
+    Class handling encoding and decoding of SELFIES strings
+    Heavily uses and relies on https://github.com/aspuru-guzik-group/selfies
+    """
+    
+    def __init__(self):
+        pass
+
+
+    def initialise_from_dataset(self, dataset_smiles):
+        """Given a smiles dataset, it will generate a SELFIES tokenizer
+
+        Args:
+            dataset_smiles: List containing list of smiles in the dataset. 
+            Generated when creating the TFRecords.
+        """
+        
+        # Create list of selfies, with start and stop tokens
+        dataset = ["[START]" + sf.encoder(smile) + "[STOP]" for smile in dataset_smiles]
+        # obtain alphabet
+        alphabet = sf.get_alphabet_from_selfies(dataset)
+        # [nop] is the null (padding) for selfies
+        alphabet.add("[nop]")
+        # obtain max length of selfies
+        self.max_length = max(sf.len_selfies(s) for s in dataset)
+        # generate dict to label the selfies
+        self.token2num = {s: i for i, s in enumerate(alphabet)}
+        self.num2token = {i: c for c, i in self.token2num.items()}
+
+
+    def initialise_from_dataset_pickle(self, dataset_smiles):
+        """Given a smiles dataset, it will generate a SELFIES tokenizer
+
+        Args:
+            dataset_smiles: File (pickle) containing list of smiles in the dataset. 
+            Generated when creating the TFRecords.
+        """
+
+        # load list from pickle
+        with open(dataset_smiles, 'rb') as file:
+            smiles = pickle.load(file)
+        
+        self.initialise_from_dataset(smiles)
+
+
+    def save_config(self, config_path: str):
+        config  = {}
+        config['num2token'] = self.num2token
+        config['token2num'] = self.token2num
+        config['max_length'] = self.max_length
+        with open(config_path, 'w') as file:
+            json.dump(config, file)
+
+
+    def load_from_config(self, config_path: str):
+        with open(config_path, 'r') as file:
+            config = json.load(file)
+            num2token = config['num2token']
+            # self.num2token = {int(k):v for k,v in num2token.items()}
+            self.num2token = {k:v for k,v in num2token.items()}
+            self.token2num = config['token2num']
+            self.max_length = config['max_length']
+
+
+    def encode_selfie(self, selfie: str) -> List[int]:
+        """
+        Encodes selfie string into vector representation using token2num
+        dict.
+        
+        Args:
+            selfie: string with selfie
+        Returns:
+            encoded_selfie: an array of ints with encoded selfie
+        
+        """
+
+        tokens = "[START]" + selfie + "[STOP]"
+
+        label = sf.selfies_to_encoding(
+            selfies=tokens,
+            vocab_stoi=self.token2num,
+            pad_to_len=self.max_length,
+            enc_type="label"
+        )
+
+        return label
+    
+
+    def decode_selfie(self, encoded_selfie: List[str]) -> str:
+        """
+        Decodes a single selfie string
+        Args:
+            encoded_smiles: an array of size [seq_len]
+        Returns:
+               selfies: string with selfie
+        """
+
+        tokens = sf.encoding_to_selfies(
+            encoding=encoded_selfie,
+            vocab_itos=self.num2token,
+            enc_type="label"
+        )
+        tokens = sf.split_selfies(tokens)
+
+        avoid_tokens = ['[START]', '[STOP]', '[nop]']
+
+        tokens = [t for t in tokens if t not in avoid_tokens]
+        selfies = ''.join(tokens)
+        return selfies

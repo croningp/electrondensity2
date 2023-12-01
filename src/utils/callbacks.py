@@ -46,7 +46,7 @@ class CallbackSinglePrediction(Callback):
 
 class DisplayOutputs(Callback):
     def __init__(
-        self, batch, idx_to_token, target_start_token_idx=30, target_end_token_idx=31,
+        self, batch, idx_to_token, target_start_token_idx=14, target_end_token_idx=0,
         generate_from=10, print_screen=5, print_every_n_epochs=1, run_folder=None
     ):
         """Callback used on the Transformer. Print on screen a few smiles as generated.
@@ -101,8 +101,10 @@ class DisplayOutputs(Callback):
                 if idx == self.target_end_token_idx:
                     break
             # clean out the tokens
-            target_text = target_text.replace('NULL', '').replace('STOP', '')
-            prediction = prediction.replace('STOP', '')
+            target_text = target_text.replace('[nop]', '').replace('[STOP]', '') # selfies control tokens
+            target_text = target_text.replace('NULL', '').replace('STOP', '') # smiles control tokens
+            prediction = prediction.replace('[STOP]', '') # selfies control tokens
+            prediction = prediction.replace('STOP', '') # smiles control tokens
             # add to results
             originals.append(target_text)
             predictions.append(prediction)
@@ -119,7 +121,7 @@ class DisplayOutputs(Callback):
         if self.run_folder is not None:
             filepath = os.path.join(
                 self.run_folder, 'smiles', 'smile_' + str(epoch).zfill(3) + '.p')
-            print('Smiles saved to {}'.format(filepath))
+            print('Smiles or selfies saved to {}'.format(filepath))
             with open(filepath, 'wb') as pfile:
                 pickle.dump([originals, predictions], pfile)
 

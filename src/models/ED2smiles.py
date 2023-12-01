@@ -7,7 +7,7 @@
 # I am not adding comments to most of the stuff that is directly copy-pasted. Check the
 # tutorials above and then you will easily understand it.
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
 ##########################################################################################
 
@@ -418,7 +418,7 @@ class E2S_Transformer(tf.keras.Model):
 
     def probabilistic_sampling(self, logits):
         """ Performs probabilistic selection of logits, instead of argmax."""
-        logits, indices = tf.math.top_k(logits, k=20, sorted=True)
+        logits, indices = tf.math.top_k(logits, k=5, sorted=True)
         indices = np.asarray(indices).astype("int32")
         preds = activations.softmax(tf.expand_dims(logits, 0))[0]
         preds = np.asarray(preds).astype("float32")
@@ -459,7 +459,7 @@ class E2S_Transformer(tf.keras.Model):
 
     def train(
         self, train_dataset, valid_dataset, epochs, run_folder, tokenizer,
-        initial_epoch=3, print_every_n_epochs=1
+        initial_epoch=0, print_every_n_epochs=1
     ):
 
         display_cb = DisplayOutputs(

@@ -10,8 +10,9 @@ from functools import partial
 from typing import List
 
 import tensorflow as tf
+import selfies as sf
 
-from src.datasets.utils.tokenizer import Tokenizer
+from src.datasets.utils.tokenizer import Tokenizer, SelfiesTokenizer
     
 def wrap_float(value):
     """Wraps a single float into tf FloatList"""
@@ -31,7 +32,7 @@ def wrap_string(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def prepare_TFRecord(data, tokenizer, esp):
+def prepare_TFRecord(data, tokenizer, sf_tokenizer, esp):
     """Builds a tfrecod from data"""
     density = wrap_float_list(data['electron_density'].reshape(-1))
     record_dict = {'density': density,}
@@ -51,10 +52,20 @@ def prepare_TFRecord(data, tokenizer, esp):
             key_data = wrap_string(key_data)
             record_dict[key] = key_data
     
+    sc = sf.get_semantic_constraints()
+    sc['N']=5
+    sf.set_semantic_constraints(sc)
+
     smiles = data['smiles']
+    selfies = sf.encoder(smiles)
+    
     encoded_smiles = tokenizer.encode_smiles(smiles)
+    encoded_selfies = sf_tokenizer.encode_selfie(selfies)
+
     record_dict['smiles_string'] = wrap_string(smiles)
+    record_dict['selfies_string'] = wrap_string(selfies)
     record_dict['smiles'] = wrap_int_list(encoded_smiles)
+    record_dict['selfies'] = wrap_int_list(encoded_selfies)
     record_dict['num_atoms'] = wrap_int_list([data['num_atoms']])
     record = tf.train.Features(feature=record_dict)
     tfrecord = tf.train.Example(features=record)
@@ -116,7 +127,7 @@ def train_preprocess(electron_density, *args):
 
     return (electron_density, *args)
 
-def serialize_to_tfrecords(paths, out_path, tokenizer_config_path):
+def serialize_to_tfrecords(paths, out_path, tokenizer_config_path, sf_tokenizer_config, esp=True):
     """ Serializes all the data into one file with TFRecords.
         Args:
             path: string the main folder with cube files
@@ -128,16 +139,27 @@ def serialize_to_tfrecords(paths, out_path, tokenizer_config_path):
     writer = tf.io.TFRecordWriter(out_path)
     tokenizer = Tokenizer()
     tokenizer.load_from_config(tokenizer_config_path)
+    sf_tokenizer = SelfiesTokenizer()
+    sf_tokenizer.load_from_config(sf_tokenizer_config)
 
-    for cube_path in tqdm.tqdm(paths):
-        with open(cube_path, 'rb') as f:
-            data = pickle.load(f)
-        example = prepare_TFRecord(data, tokenizer)
-        serialized = example.SerializeToString()
-        writer.write(serialized)
+    data_len = len(paths)
+    done = 0
+
+    with tqdm(total=data_len, unit='F', desc='Parsed file', initial=0) as pbar:
+        for cube_path in paths:
+            with open(cube_path, 'rb') as f:
+                data = pickle.load(f)
+            example = prepare_TFRecord(data, tokenizer, sf_tokenizer, esp)
+            serialized = example.SerializeToString()
+            writer.write(serialized)
+            done += 1
+            pbar.update(1)
+            if done > data_len:
+                break
+            
     writer.close()
 
-def worker(input_queue, serialized_queue, tokenizer_config, esp=True):
+def worker(input_queue, serialized_queue, tokenizer_config, sf_tokenizer_config, esp=True):
     """
     Worker process for parallel serialization
     Args:
@@ -151,15 +173,19 @@ def worker(input_queue, serialized_queue, tokenizer_config, esp=True):
     """
     tokenizer = Tokenizer()
     tokenizer.load_from_config(tokenizer_config)
+    sf_tokenizer = SelfiesTokenizer()
+    sf_tokenizer.load_from_config(sf_tokenizer_config)
+
     while True:
             data = input_queue.get()
-            example = prepare_TFRecord(data, tokenizer, esp)
+            example = prepare_TFRecord(data, tokenizer, sf_tokenizer, esp)
             serialized = example.SerializeToString()
             serialized_queue.put(serialized)
             
 def parellel_serialize_to_tfrecords(paths,
                                     out_path,
                                     tokenizer_config_path,
+                                    sf_token_config_path,
                                     esp=True,
                                     num_processes=12):
     """ Serializes all the data into one file with TFRecords.
@@ -174,7 +200,7 @@ def parellel_serialize_to_tfrecords(paths,
     import multiprocessing as mp
     input_queue = mp.Queue(maxsize=100)
     serialized_queue = mp.Queue(maxsize=100)
-    processes = [mp.Process(target=worker, args=(input_queue, serialized_queue, tokenizer_config_path))
+    processes = [mp.Process(target=worker, args=(input_queue, serialized_queue, tokenizer_config_path, sf_token_config_path, esp))
                  for i in range(num_processes)]
     [p.start() for p in processes]
     writer = tf.io.TFRecordWriter(out_path)
@@ -186,16 +212,18 @@ def parellel_serialize_to_tfrecords(paths,
     with tqdm(total=data_len, unit='F', desc='Parsed file', initial=0) as pbar:
         while n_parsed < data_len:
             if n_read < data_len:
-                with open(paths[n_read], 'rb') as f:
-                    data = pickle.load(f)
-                    input_queue.put(data)
-                    n_read += 1
+                if input_queue.full() is not True:
+                    with open(paths[n_read], 'rb') as f:
+                        data = pickle.load(f)
+                        input_queue.put(data)
+                        n_read += 1
                     
-            while not serialized_queue.empty():
+            while not serialized_queue.empty():       
                 serialized = serialized_queue.get()
                 writer.write(serialized)
                 n_parsed += 1
                 pbar.update(1)
+    
     writer.close()
     [p.terminate() for p in processes]
 

@@ -6,7 +6,7 @@
 # This code is a mixture of https://keras.io/examples/keras_recipes/tfrecord/
 # and how Jarek did it on the branch "developer" (develop/input/tfrecords.py)
 #
-# Author: Juan Manuel Parrilla Gutierrez (juanma.parrilla@gcu.ac.uk)
+# Author: Juan Manuel Parrilla Gutierrez (juanma@chem.gla.ac.uk)
 #
 ##########################################################################################
 
@@ -56,9 +56,13 @@ class TFRecordLoader():
                 features[prop] = tf.io.FixedLenFeature([64, 64, 64], tf.float32)
             elif prop == 'smiles':
                 features[prop] = tf.io.FixedLenFeature([24], tf.int64)
+            elif prop == 'selfies':
+                features[prop] = tf.io.FixedLenFeature([23], tf.int64)
             elif prop == 'fp':
                 features[prop] = tf.io.FixedLenFeature([1024], tf.float32)
             elif prop == 'smiles_string':
+                features[prop] = tf.io.VarLenFeature(tf.string)
+            elif prop == 'selfies_string':
                 features[prop] = tf.io.VarLenFeature(tf.string)
             else:
                 features[prop] = tf.io.FixedLenFeature([1], tf.float32)
