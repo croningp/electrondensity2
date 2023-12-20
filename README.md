@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/576255937.svg)](https://zenodo.org/doi/10.5281/zenodo.10409769)
+
 # ElectronDensity2
 
 This repository is related to the paper "Electron Density-Based GPT for Optimization and Suggestion of Host-Guest Binders". Please check the manuscript, and especially the Supplementary Information document, for full information about how to run the model, and about the results we obtained.
