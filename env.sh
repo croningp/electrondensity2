@@ -1,4 +1,4 @@
-CONDA_ENV_NAME=electrondensity
+CONDA_ENV_NAME=edtf10
 export PROJECT_ROOT=`pwd`
 export DATA_DIR='./data'
 export LOGS_DIR='./logs'

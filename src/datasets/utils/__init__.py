@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 def download_and_unpack(url, destdir):
     
-    if os.path.exists(destdir):
-        logger.info('Dataset already downloaded and unpacked')
-        return
-        
+    # if os.path.exists(destdir):
+    #     logger.info('Dataset already downloaded and unpacked')
+    #     return
+
     r = requests.get(url, stream=True)
     total_size = int(r.headers.get('Content-Length'))
     file_name = r.url.split('?')[0].split('/')[-1]

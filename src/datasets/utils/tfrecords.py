@@ -12,6 +12,7 @@ from typing import List
 import tensorflow as tf
 import selfies as sf
 
+from src.utils import canonical_smiles
 from src.datasets.utils.tokenizer import Tokenizer, SelfiesTokenizer
     
 def wrap_float(value):
@@ -57,6 +58,7 @@ def prepare_TFRecord(data, tokenizer, sf_tokenizer, esp):
     sf.set_semantic_constraints(sc)
 
     smiles = data['smiles']
+    smiles = canonical_smiles(smiles)
     selfies = sf.encoder(smiles)
     
     encoded_smiles = tokenizer.encode_smiles(smiles)

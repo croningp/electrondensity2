@@ -185,7 +185,7 @@ class QM9Dataset(Dataset):
         
         """
     
-        qm9_files = os.listdir(self.sourcedir)#[:20]
+        qm9_files = os.listdir(self.sourcedir)#[:500]
         for qm9_file in tqdm(qm9_files, desc='Generating electron density'):
             self._parse_single_qm9_file(qm9_file, rewrite=rewrite, esp=esp)
             
@@ -196,9 +196,9 @@ class QM9Dataset(Dataset):
 
         # if from scratch, uncomment next line and comment the other two
         # if the smiles dataset pickle was already generated, comment next one and uncomment next 2
-        # dataset_smiles = self.get_dataset_smiles()
-        with open("/home/nvme/juanma/Data/ED/dataset_smiles_qm9.pkl", 'rb') as file:
-            dataset_smiles = pickle.load(file)
+        dataset_smiles = self.get_dataset_smiles()
+        # with open("/home/nvme/juanma/Data/ED/dataset_smiles_qm9.pkl", 'rb') as file:
+        #    dataset_smiles = pickle.load(file)
 
         self.tokenizer = Tokenizer()
         self.tokenizer.initilize_from_dataset(dataset_smiles)
@@ -270,7 +270,7 @@ class QM9Dataset(Dataset):
         logger.info('Downloading and extracting QM9 dataset')
         download_and_unpack(self.url, self.sourcedir)
         logger.info('Computing electron densities')
-        # self._compute_electron_density(rewrite=False, esp=True)
+        self._compute_electron_density(rewrite=False, esp=True)
         logger.info('Creating dataset SMILES tokenizer')
         self._initialize_tokenizer()
         logger.info('Splitting and serializing dataset into tfrecords')
@@ -278,7 +278,6 @@ class QM9Dataset(Dataset):
         for key, split in zip(['train', 'valid', 'test'], splits):
             logger.info('Creating {} set'.format(key))
             split_output_path = os.path.join(self.dir, '{}.tfrecords'.format(key))
-            print(CPU_COUNT)
             parellel_serialize_to_tfrecords(split, split_output_path,
                                             self.tokenizer_config_path, self.sf_token_config_path,
                                             num_processes=CPU_COUNT)
