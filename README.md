@@ -27,7 +27,7 @@ source env.sh
 ```
 ### Generating training data
 
-The following command might take days and use almost 300Gb. For a shorter test you can open src/datasets/qm9.py, line 188 (should be inside _compute_electron_density), and you can uncomment the list slice at the end.
+The following command might take days and use almost 300Gb. For a shorter test you can open [src/datasets/qm9.py, line 188](https://github.com/croningp/electrondensity2/blob/c729830924575cef7c73ea36a68814ca0b60793f/src/datasets/qm9.py#L188) (should be inside _compute_electron_density), and you can uncomment the list slice at the end.
 
 ```sh
 python bin/generate_dataset.py QM9
