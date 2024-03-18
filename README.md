@@ -12,7 +12,7 @@ What follows is a very brief guide about how to get the repository started.
 
 We recommend running Electrondensity in conda environment. The following command creates conda environment with necessary dependencies. 
 
-`conda env create -f environmentTF10.yaml`
+`conda env create -f environmentTF10.yml`
 
 File `env.sh` contains environmental variables that can be modified to suit your configuration:
 
