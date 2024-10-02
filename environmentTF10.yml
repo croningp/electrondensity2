@@ -268,6 +268,7 @@ dependencies:
   - zipp=3.16.2=pyhd8ed1ab_0
   - zlib=1.2.13=hd590300_5
   - zstd=1.5.5=hfc55251_0
+  - cython
   - pip:
     - absl-py==1.4.0
     - astunparse==1.6.3
@@ -302,4 +303,5 @@ dependencies:
     - urllib3==1.26.16
     - werkzeug==2.3.7
     - wrapt==1.15.0
+    - git+https://github.com/orbkit/orbkit.git@cc17072eac4d2e5bac1eb3acaeda6921dd46e75b
 prefix: /home/juanma/miniconda3/envs/edtf10
